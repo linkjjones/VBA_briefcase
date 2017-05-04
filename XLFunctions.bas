@@ -4,7 +4,9 @@ Option Explicit
 'Libraries needed image
 'BE SURE TO MAKE EVERY HEADER ROW THE SAME FOR EVERY PAGE!!!
 
-Public Const HeaderRow As Long = 2
+Public Const HeaderRow As Long = 10
+Public Const DataStartRow As Long = HeaderRow + 1
+Public Const Orange = 46
 Public pwd As String
 Public Clean As Boolean
 
@@ -18,8 +20,12 @@ Public Sub InsertDateNow(DateCell As Range)
     DateCell.Value = Date
 End Sub
 
-Public Sub UnfilterSheet()
-    If ActiveSheet.FilterMode Then ActiveSheet.ShowAllData
+Public Sub UnfilterSheet(Optional ws As Worksheet)
+    If ws Is Nothing Then
+        Set ws = ActiveSheet
+    End If
+    
+    If ws.FilterMode Then ws.ShowAllData
 End Sub
 
 'Public Sub ScrollToCol(ScrollCol As Integer)
@@ -29,7 +35,7 @@ End Sub
 Public Sub ScrollToCol(ScrollCol As Integer, Optional SmoothUP As Boolean)
     Dim i As Integer
     Dim StartingCol As Long
-    Dim StartTime As Long
+    Dim startTime As Long
     On Error GoTo NormalScroll
     
     Sleep 1
@@ -58,7 +64,7 @@ End Sub
 Public Sub ScrollToRow(ScrollRow As Integer, Optional SmoothUP As Boolean)
     Dim i As Integer
     Dim StartingRow As Long
-    Dim StartTime As Long
+    Dim startTime As Long
     On Error GoTo NormalScroll
     
     Sleep 1
@@ -106,15 +112,15 @@ Public Function OpenWorkbook(FilePath As String, Visible As Boolean, _
                              Optional Password As String, _
                              Optional WriteMode As Boolean) As Excel.Workbook
     On Error GoTo errHandler
-    Dim XLApp As Excel.APPLICATION
+    Dim XLApp As Excel.Application
     Dim XLBook As Excel.Workbook
     
     'Open Spreadsheet
     Set XLApp = CreateObject("Excel.application")
 
 OpenXLBook:
-    XLApp.APPLICATION.AskToUpdateLinks = False
-    XLApp.APPLICATION.DisplayAlerts = False
+    XLApp.Application.AskToUpdateLinks = False
+    XLApp.Application.DisplayAlerts = False
     If WriteMode Then
         If Password = "" Or IsNull(Password) Then
             Set XLBook = XLApp.Workbooks.Open(FilePath, , False, , , , True, , , True)
@@ -128,8 +134,8 @@ OpenXLBook:
             Set XLBook = XLApp.Workbooks.Open(FilePath, , True, , Password, , True)
         End If
     End If
-    XLApp.APPLICATION.AskToUpdateLinks = True
-    XLApp.APPLICATION.DisplayAlerts = True
+    XLApp.Application.AskToUpdateLinks = True
+    XLApp.Application.DisplayAlerts = True
     XLApp.Visible = Visible
     
     Set OpenWorkbook = XLBook
@@ -144,9 +150,9 @@ End If
 End Function
 
 Public Sub CloseWorkbook(XLBook As Excel.Workbook, Optional SaveWB As Boolean)
-    Dim XLApp As Excel.APPLICATION
+    Dim XLApp As Excel.Application
     
-    Set XLApp = XLBook.APPLICATION
+    Set XLApp = XLBook.Application
     If Not XLBook Is Nothing Then
         If SaveWB Then
             XLBook.Save
@@ -166,33 +172,6 @@ End Function
 Public Function LastCol(ws As Worksheet, RowNumber As Long) As Long
     LastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
 End Function
-
-Public Sub FormatRange(ws As Worksheet, StartCell As Range, EndCell As Range)
-    'formating
-    Dim i As Long
-    Dim DataRow As Range
-    
-    'Clear all background, upper/lower line
-    
-    For i = StartCell.Row To EndCell.Row
-        'Format entire row: Nav/Component
-        'set range (row)
-        Set DataRow = Range(ws.Cells(i, StartCell.Column), ws.Cells(i, EndCell.Column))
-        If i Mod 2 > 0 Then
-            'background
-            DataRow.Interior.Color = RGB(180, 180, 180)
-            'upper/lower line
-            
-        End If
-        'Format vertical lines
-        'Format Component
-        'Format Material
-        'Format Diameter
-        
-    Next i
-
-
-End Sub
 
 Public Function HeaderCell(HeaderName As String, ws As Worksheet, LastDataColumn As Long) As Range
     On Error Resume Next
@@ -261,31 +240,100 @@ Public Function FindColInRow(XLSheet As Worksheet, FindRow As Long, _
     
 End Function
 
-Public Sub CopyDownFormulas(ws As Worksheet, DataStartRow As Long, LastDataRow As Long, PasteAsValue As Boolean)
+Public Sub CopyDownFormulas(ws As Worksheet, pasteRange As Range, FormulaCommentCell As Range, PasteAsValues As Boolean)
+    
+    ws.Unprotect
+    
+    If Not FormulaCommentCell.Comment Is Nothing Then
+        'Make sure it starts with an '=' sign
+        If Left(FormulaCommentCell.Comment.Text, 1) = "=" Then
+            pasteRange = FormulaCommentCell.Comment.Text
+            If PasteAsValues Then
+                pasteRange.Value = pasteRange.Value
+            End If
+        End If
+    End If
+ 
+End Sub
+
+Public Sub CopyDownFormulas_Sheet(LastDataRow As Long, _
+                                  Optional ws As Worksheet, _
+                                  Optional CommentRow As Long, _
+                                  Optional FirstDataRow As Long, _
+                                  Optional LeaveAsFormulas As Boolean)
     Dim i As Long
     Dim CopyRange As Range
+    
+    If ws Is Nothing Then
+        Set ws = ActiveSheet
+    End If
+    If FirstDataRow = 0 Then
+        FirstDataRow = DataStartRow
+    End If
+    If CommentRow = 0 Then
+        CommentRow = HeaderRow
+    End If
     
     ws.Unprotect
     
     With ws
-        For i = 1 To GetLastCol(ws, HeaderRow)
-            If Not .Cells(HeaderRow, i).Comment Is Nothing Then
-                If Left(.Cells(HeaderRow, i).Comment.Text, 1) = "=" Then
-                    Set CopyRange = .Range(.Cells(DataStartRow, i), .Cells(LastDataRow, i))
-                    CopyRange = .Cells(HeaderRow, i).Comment.Text
-                    If PasteAsValue Then
+        For i = 1 To GetLastCol(ws, CommentRow)
+            If Not .Cells(CommentRow, i).Comment Is Nothing Then
+                'Make sure it starts with an '=' sign
+                If Left(.Cells(CommentRow, i).Comment.Text, 1) = "=" Then
+                    Set CopyRange = .Range(.Cells(FirstDataRow, i), .Cells(LastDataRow, i))
+                    CopyRange = .Cells(CommentRow, i).Comment.Text
+                    If Not LeaveAsFormulas Then
                         CopyRange.Value = CopyRange.Value
                     End If
                 End If
             End If
         Next i
     End With
+
+End Sub
+
+Sub TestCopyUpFormulas()
+    XLFunctions.CopyUpFormulas_Sheet
+End Sub
+
+Sub CopyUpFormulas_Sheet(Optional ws As Worksheet, Optional CommentRow As Long, _
+                         Optional StartColumn As Long, Optional EndColumn As Long)
+    'Loop through collumns and copy up to row above into comments
+    'ASSUMES THE DataStartRow IS SET
+    Dim i As Long
+    Dim c As Range
+    On Error Resume Next
     
-    ws.Protect
+    If ws Is Nothing Then
+        Set ws = ActiveSheet
+    End If
+    
+    If CommentRow = 0 Then
+        CommentRow = DataStartRow - 1
+    End If
+    
+    If StartColumn = 0 Then
+        StartColumn = 1
+    End If
+    
+    If EndColumn = 0 Then
+        EndColumn = XLFunctions.GetLastCol(ws, DataStartRow)
+    End If
+    
+    For i = StartColumn To EndColumn
+        Set c = ws.Cells(DataStartRow, i)
+        c.Select
+        If Left(c.Formula, 1) = "=" Then
+        'this is a formula, so copy to comments
+            ws.Cells(CommentRow, i).Comment.Delete
+            ws.Cells(CommentRow, i).AddComment CStr(c.Formula)
+        End If
+    Next i
     
 End Sub
 
-Public Sub ClearListBoxSelection(lst As MSForms.ListBox)
+Public Sub ClearListBoxSelection(lst As msforms.ListBox)
     Dim i As Integer
     
     For i = 0 To lst.ListCount - 1
@@ -305,11 +353,15 @@ End Function
 
 Public Function GetLastRow(ws As Worksheet, ColumnNumber As Long, _
                            Optional LimitRow As Long) As Long
-    GetLastRow = ws.Cells(ws.Rows.Count, ColumnNumber).End(xlUp).Row
+    Dim LastRow As Long
+    
+    LastRow = ws.Cells(ws.Rows.Count, ColumnNumber).End(xlUp).Row
     
     If LimitRow <> 0 Then
-        GetLastRow = IIf(GetLastRow < LimitRow, LimitRow, GetLastRow)
+        LastRow = IIf(LastRow < LimitRow, LimitRow, LastRow)
     End If
+    
+    GetLastRow = LastRow
 End Function
 
 Public Function HeaderCol(ws As Worksheet, HeaderName As String) As Long
@@ -395,14 +447,14 @@ Public Sub HideAllXLControls()
     'Get the current ws so we can go back to it after all the changes
     Set currentSheet = ActiveSheet
     
-    With APPLICATION
+    With Application
         .DisplayFormulaBar = False
         .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",False)"
-        .DisplayScrollBars = False
-        .DisplayStatusBar = Not APPLICATION.DisplayStatusBar
+'        .DisplayScrollBars = False
+'        .DisplayStatusBar = Not Application.DisplayStatusBar
     End With
     
-    APPLICATION.ScreenUpdating = False
+    Application.ScreenUpdating = False
     'Set zoom for each worksheet
     For Each ws In Worksheets
         ws.Select
@@ -410,14 +462,14 @@ Public Sub HideAllXLControls()
             .DisplayWorkbookTabs = False
             .DisplayHeadings = False
             .DisplayGridlines = False
-            .Zoom = Worksheets("Control").Range("WBZoom").Value
+'            .Zoom = Worksheets("Control").Range("WBZoom").Value
         End With
     Next ws
     
     'Go back to the starting worksheet
     currentSheet.Select
     
-    APPLICATION.ScreenUpdating = True
+    Application.ScreenUpdating = True
    
 End Sub
 
@@ -428,19 +480,19 @@ Public Sub ShowAllXLControls()
     'Get the current ws so we can go back to it after all the changes
     Set currentSheet = ActiveSheet
     
-    APPLICATION.ScreenUpdating = False
+    Application.ScreenUpdating = False
     
     'Set zoom for each worksheet
     For Each ws In Worksheets
         ws.Select
         With ActiveWindow
-            .DisplayGridlines = True
+'            .DisplayGridlines = True
             .DisplayHeadings = True
             .DisplayWorkbookTabs = True
         End With
     Next ws
     
-    With APPLICATION
+    With Application
         .DisplayFormulaBar = True
         .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",True)"
         .DisplayScrollBars = True
@@ -450,6 +502,201 @@ Public Sub ShowAllXLControls()
     'Go back to the starting worksheet
     currentSheet.Select
     
-    APPLICATION.ScreenUpdating = True
+    Application.ScreenUpdating = True
     
  End Sub
+ 
+'Public Sub testthisInsert()
+'   Call AddCheckBoxesToRange(Sheets("Control"), Range("B11:B25"))
+'End Sub
+'Public Sub testthisRemove()
+'   Call RemoveCheckBoxesFromRange(Sheets("Control"), Range("B11:B25"))
+'End Sub
+ 
+Public Sub AddCheckBoxesToRange(ws As Worksheet, CheckRange As Range, _
+                                Optional SelectCellRowOffset As Long, _
+                                Optional SelectCellColumnOffset As Long, _
+                                Optional ImageToRotate As String, _
+                                Optional Increment As Integer)
+    Dim c As Range
+'    On Error Resume Next
+    
+    For Each c In CheckRange.Cells
+        'rotate an image
+        If ImageToRotate <> "" Then
+            RotateImage ws, ImageToRotate, Increment, c.Row
+        End If
+        
+        ws.CheckBoxes.add(c.Left, c.Top, c.Width, c.Height).Select
+        With Selection
+            .LinkedCell = c.Address
+            .Characters.Text = ""
+            .Name = c.Address
+            c.Value = False
+            c.Font.Color = vbWhite
+        End With
+    Next c
+    
+    'Deselect the last checkbox so it doesn't screw up other routines
+    CheckRange.Cells(1 + SelectCellRowOffset, 1 + SelectCellColumnOffset).Select
+    
+ End Sub
+ 
+ Public Sub RemoveCheckBoxesFromRange(ws As Worksheet, CheckRange As Range)
+    On Error Resume Next
+    Dim c As Object
+    
+    For Each c In ws.CheckBoxes
+        If Not Intersect(c.TopLeftCell, CheckRange) Is Nothing Then
+            c.Delete
+        End If
+    Next
+
+ End Sub
+
+'Sub testthis()
+'    Call RemoveCheckBoxesFromSheet(Sheets("Control"))
+'End Sub
+
+ Public Sub RemoveCheckBoxesFromSheet(ws As Worksheet)
+    On Error Resume Next
+    Dim c As Object
+    
+    For Each c In ws.CheckBoxes
+        c.Delete
+    Next
+
+ End Sub
+
+Public Sub RotateImage(ws As Worksheet, imgName As String, _
+                       Increment As Integer, Counter As Long)
+    Dim Theta As Double
+    Dim Position As Integer
+    
+    Position = Counter Mod Increment
+    
+    Theta = 360 / Increment
+    DoEvents
+    With ws.Shapes(imgName)
+        .Rotation = Theta * Position
+    End With
+    
+End Sub
+
+Public Sub ValidateRange(RangeToBeValidated As Range, ValueListFormula As Variant, Optional DropDown As Boolean)
+    With RangeToBeValidated.Validation
+        .Delete
+        .add xlValidateList, xlValidAlertStop, , ValueListFormula
+        .IgnoreBlank = True
+        .InCellDropdown = DropDown
+    End With
+End Sub
+
+Public Sub ValidateRangeTrueFalse(RangeToBeValidated As Range, Optional DropDown As Boolean = True)
+    With RangeToBeValidated.Validation
+        .Delete
+        .add xlValidateList, xlValidAlertStop, , "True, False"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+    End With
+End Sub
+
+Public Sub ClearLines(rng As Range)
+    rng.Borders.LineStyle = xlNone
+End Sub
+
+Public Sub FormatRangeWithLines(FormatRange As Range, Optional VerticalLines As Boolean)
+    
+    With FormatRange
+        If VerticalLines Then
+            .Borders(xlInsideHorizontal).Color = RGB(200, 200, 200)
+            .Borders(xlInsideHorizontal).LineStyle = xlContinuous
+            .Borders(xlInsideHorizontal).Weight = xlThin
+            .Borders(xlInsideVertical).Color = RGB(200, 200, 200)
+            .Borders(xlInsideVertical).LineStyle = xlContinuous
+            .Borders(xlInsideVertical).Weight = xlThin
+            .Borders(xlEdgeLeft).LineStyle = xlContinuous
+            .Borders(xlEdgeRight).LineStyle = xlContinuous
+            .Borders(xlEdgeBottom).LineStyle = xlContinuous
+            .Borders(xlEdgeTop).LineStyle = xlContinuous
+            .Borders(xlEdgeBottom).Color = RGB(100, 100, 100)
+        Else
+            .Borders(xlInsideHorizontal).Color = RGB(200, 200, 200)
+            .Borders(xlInsideHorizontal).LineStyle = xlContinuous
+            .Borders(xlInsideHorizontal).Weight = xlThin
+            .Borders(xlEdgeBottom).Color = RGB(100, 100, 100)
+        End If
+    End With
+    
+End Sub
+
+Public Function InRange(Range1 As Range, Range2 As Range) As Boolean
+    ' returns True if Range1 is within Range2
+    InRange = Not (Application.Intersect(Range1, Range2) Is Nothing)
+End Function
+
+Public Sub Selection(ws As Worksheet, target As Range, rng As Range)
+    'This routine finds the intersection of
+    Dim IntersectRange As Range
+
+    Set IntersectRange = Application.Intersect(rng, target)
+    If IntersectRange Is Nothing Then
+        Exit Sub
+    End If
+    
+    With IntersectRange
+        If IntersectRange.Cells(1).Value = "" Then
+            .Value = "Update"
+            .Interior.ColorIndex = Orange
+            .Font.Color = RGB(255, 255, 255)
+        Else
+            .Value = ""
+            .Interior.ColorIndex = 0
+        End If
+    End With
+
+End Sub
+
+Function StringContainsNumber(strData As String) As Boolean
+    Dim i As Integer
+     
+    For i = 1 To Len(strData)
+        If IsNumeric(Mid(strData, i, 1)) Then
+            StringContainsNumber = True
+            Exit Function
+        End If
+    Next i
+     
+End Function
+
+
+Sub FormatDecimal(rng As Range)
+With rng
+        .NumberFormat = "0.000"
+        .HorizontalAlignment = xlRight
+        .IndentLevel = 1
+    End With
+End Sub
+
+Sub FormatPercent(rng As Range)
+With rng
+        .NumberFormat = "0%"
+        .HorizontalAlignment = xlCenter
+    End With
+End Sub
+
+Sub FormatText(rng As Range)
+With rng
+        .NumberFormat = "@"
+        .HorizontalAlignment = xlLeft
+    End With
+End Sub
+
+Sub FormatID(rng As Range)
+    With rng
+        .Font.Color = RGB(200, 200, 200)
+        .HorizontalAlignment = xlCenter
+        .Font.Size = 8
+    End With
+End Sub
+
