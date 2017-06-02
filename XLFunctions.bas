@@ -344,12 +344,23 @@ Public Sub ClearListBoxSelection(lst As msforms.ListBox)
     lst.Selected(0) = False
 End Sub
 
-Public Function GetLastCol(ws As Worksheet, RowNumber As Long) As Long
-    If RowNumber = 0 Then
-        GetLastCol = 1
-        Exit Function
-    End If
+Public Function GetLastCol(ws As Worksheet, Optional RowNumber As Long, _
+                           Optional ColLimit As Long) As Long
+    RowNumber = IIf(RowNumber = 0, HeaderRow, RowNumber)
+
     GetLastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
+    
+    GetLastCol = IIf(GetLastCol < ColLimit, ColLimit, GetLastCol)
+End Function
+
+Public Function GetFirstCol(ws As Worksheet, Optional RowNumber As Long, _
+                            Optional StartCol As Long) As Long
+    'This function assumes that the start cell is blank
+    
+    RowNumber = IIf(RowNumber = 0, HeaderRow, RowNumber)
+    StartCol = IIf(StartCol = 0, 1, StartCol)
+    
+    GetFirstCol = ws.Cells(RowNumber, StartCol).End(xlToRight).Column
 End Function
 
 Public Function GetLastRow(ws As Worksheet, ColumnNumber As Long, _
@@ -373,32 +384,36 @@ Public Function GetLastRow(ws As Worksheet, ColumnNumber As Long, _
     
 End Function
 
-Public Function GetFirstRow(ws As Worksheet, ColumnNumber As Long, _
-                           Optional StartRow As Long, _
-                           Optional BtmLimitRow As Long) As Long
-                           
-    StartRow = IIf(StartRow = 0, HeaderRow, StartRow)
-    
-    GetFirstRow = ws.Cells(StartRow, ColumnNumber).End(xlDown).Row
-    
-    If BtmLimitRow > 0 Then
-        GetFirstRow = IIf(GetFirstRow > BtmLimitRow, BtmLimitRow, GetFirstRow)
-    End If
-    
-End Function
+'Public Function GetFirstRow(ws As Worksheet, ColumnNumber As Long, _
+'                           Optional StartRow As Long, _
+'                           Optional BtmLimitRow As Long) As Long
+'    'Using XLDown is funky as it goes from where it is (a blank/not blank cell)
+     'to the next DIFFERENT cell
+'    StartRow = IIf(StartRow = 0, HeaderRow, StartRow)
+'
+'    GetFirstRow = ws.Cells(StartRow, ColumnNumber).End(xlDown).Row
+'
+'    If BtmLimitRow > 0 Then
+'        GetFirstRow = IIf(GetFirstRow > BtmLimitRow, BtmLimitRow, GetFirstRow)
+'    End If
+'
+'End Function
 
-Public Function HeaderCol(ws As Worksheet, HeaderName As String) As Long
+Public Function HeaderCol(ws As Worksheet, HeaderName As String, Optional HeadingRow As Long) _
+                          As Long
     On Error Resume Next
     Dim Header As Range
 
     Dim LookRange As Range, cell As Range
     Dim LastDataColumn As Long
     
-    LastDataColumn = GetLastCol(ws, HeaderRow)
+    HeadingRow = IIf(HeadingRow = 0, HeaderRow, HeadingRow)
+    
+    LastDataColumn = GetLastCol(ws, HeadingRow)
     
     With ws
         'since the above code is flaky...lets just loop through
-        Set LookRange = .Range(.Cells(HeaderRow, 1), .Cells(HeaderRow, LastDataColumn))
+        Set LookRange = .Range(.Cells(HeadingRow, 1), .Cells(HeadingRow, LastDataColumn))
         For Each cell In LookRange
             If cell.Value = HeaderName Then
                 HeaderCol = cell.Column
@@ -661,7 +676,7 @@ Public Function InRange(Range1 As Range, Range2 As Range) As Boolean
 End Function
 
 Public Sub Selection(ws As Worksheet, Target As Range, rng As Range, _
-                     Optional MarkDeletion As Boolean)
+                     Optional MarkDeletion As Boolean, Optional ValidationColOffset As Long)
     'This routine finds the intersection of
     Dim IntersectRange As Range
 
@@ -672,16 +687,18 @@ Public Sub Selection(ws As Worksheet, Target As Range, rng As Range, _
     
     With IntersectRange
         If IntersectRange.Cells(1).Value = "" Then
-            If MarkDeletion Then
-                .Value = "Delete"
-                .Interior.Color = vbBlack
-                .Font.Color = RGB(255, 0, 0)
-                .Borders.Color = RGB(255, 0, 0)
-            Else
-                .Value = "Update"
-                .Interior.ColorIndex = Orange
-                .Font.Color = RGB(255, 255, 255)
-                .Borders.ColorIndex = xlNone
+            If IntersectRange.Cells(1).Offset(, ValidationColOffset).Value <> "" Then
+                If MarkDeletion Then
+                    .Value = "Delete"
+                    .Interior.Color = vbBlack
+                    .Font.Color = RGB(255, 0, 0)
+                    .Borders.Color = RGB(255, 0, 0)
+                Else
+                    .Value = "Update"
+                    .Interior.ColorIndex = Orange
+                    .Font.Color = RGB(255, 255, 255)
+                    .Borders.ColorIndex = xlNone
+                End If
             End If
         Else
             .Value = ""
@@ -785,40 +802,6 @@ Public Function CountB(rng As Range)
     CountB = i
 End Function
 
-Public Sub BackupBackend(FolderPath As String)
-    
-    '1 Check if it is time to make a backup
-    '-  Ranges: BackupFilesToKeep, BackupInterval, LastBackup, NextBackup
-    '2 Purge old backups according to BackupFilesToKeep
-    '-  Collect metadata of files in backup folder
-    '3 Create a name for the backup
-    '4 Create a copy of the database with that name
-    
-    'set to defaults if ranges are empty
-    Range("BackupInterval") = IIf(Range("BackupInterval") = "", 24, Range("BackupInterval"))
-    Range("BackupFilesToKeep") = IIf(Range("BackupFilesToKeep") = "", 7, Range("BackupFilesToKeep"))
-    
-    '1 Check if it is time to make a backup
-    If Now > Range("NextBackup") Then
-        
-    
-        '-  Ranges: BackupFilesToKeep, BackupInterval, LastBackup, NextBackup
-        '2 Purge old backups according to BackupFilesToKeep
-        '-  Collect metadata of files in backup folder
-        '3 Create a name for the backup
-        '4 Create a copy of the database with that name
-        
-        
-        
-        Range("LastBackup") = Now
-        Range("NextBackup") = DateAdd("h", Range("BackupInterval"), Now)
-    End If
-    
-Exit Sub
-    
-End Sub
-
-
 'Public Sub testInts()
 '    Dim tmp As Collection: Set tmp = New Collection
 '
@@ -908,4 +891,9 @@ Public Sub HideAllColumns(ws As Worksheet, StartCol As Long, LastColumn As Long)
     For i = StartCol To LastColumn
         ws.Columns(i).EntireColumn.Hidden = True
     Next i
+End Sub
+
+Public Sub ProgressBar(Msg As String, Done As Long, Total As Long)
+    'This function puts text into the statusbar
+    Application.StatusBar = Msg & " [ " & String(Done, "|") & String(Total - Done, ".") & " ] " & Format(Done / Total, "Percent")
 End Sub
