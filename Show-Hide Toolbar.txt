@@ -1,0 +1,17 @@
+DoCmd.ShowToolbar "Ribbon", acToolbarYes
+DoCmd.ShowToolbar "Ribbon", acToolbarNo
+
+'Minimize nav pane
+DoCmd.SelectObject acTable, , True
+DoCmd.Minimize
+
+'Hide Nav pane
+Public Function HideNavPane() As Byte
+    DoCmd.SelectObject acTable, "MSysObjects", True
+    DoCmd.RunCommand acCmdWindowHide
+End Function
+
+'Show Nav pane
+Public Sub UnHideNavPane()
+    DoCmd.SelectObject acTable, "MSysObjects", True
+End Sub

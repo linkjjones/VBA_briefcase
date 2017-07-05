@@ -1,0 +1,5 @@
+
+
+SysCmd acSysCmdInitMeter, "Gathering Data: ", rs.RecordCount
+SysCmd acSysCmdUpdateMeter, rs.AbsolutePosition
+SysCmd acSysCmdRemoveMeter
