@@ -106,9 +106,9 @@ Private Function Inertia(PercentScrolled As Double) As Integer
 '    Debug.Print Inertia
 End Function
 
-Public Function HasDependents(ByVal Target As Excel.Range) As Boolean
+Public Function HasDependents(ByVal target As Excel.Range) As Boolean
     On Error Resume Next
-    HasDependents = Target.Dependents.Count
+    HasDependents = target.Dependents.Count
 End Function
 
 Public Function OpenWorkbook(FilePath As String, Visible As Boolean, _
@@ -196,8 +196,11 @@ Public Function HeaderCell(HeaderName As String, ws As Worksheet, LastDataColumn
 
 End Function
 
-Public Function WorksheetExists(wb As Workbook, SheetName As String) As Boolean
+Public Function WorksheetExists(SheetName As String, Optional wb As Workbook) As Boolean
     Dim ws As Worksheet
+    If wb Is Nothing Then
+        Set wb = ActiveWorkbook
+    End If
     
     For Each ws In wb.Sheets
         If UCase(ws.Name) = UCase(SheetName) Then
@@ -487,10 +490,10 @@ End Sub
 
 Public Sub HideAllXLControls()
     Dim ws As Worksheet
-    Dim currentSheet As Worksheet
+    Dim CurrentSheet As Worksheet
     
     'Get the current ws so we can go back to it after all the changes
-    Set currentSheet = ActiveSheet
+    Set CurrentSheet = ActiveSheet
     
     With Application
         .DisplayFormulaBar = False
@@ -512,7 +515,7 @@ Public Sub HideAllXLControls()
     Next ws
     
     'Go back to the starting worksheet
-    currentSheet.Select
+    CurrentSheet.Select
     
     Application.ScreenUpdating = True
    
@@ -520,10 +523,10 @@ End Sub
 
 Public Sub ShowAllXLControls()
     Dim ws As Worksheet
-    Dim currentSheet As Worksheet
+    Dim CurrentSheet As Worksheet
     
     'Get the current ws so we can go back to it after all the changes
-    Set currentSheet = ActiveSheet
+    Set CurrentSheet = ActiveSheet
     
     Application.ScreenUpdating = False
     
@@ -545,7 +548,7 @@ Public Sub ShowAllXLControls()
     End With
     
     'Go back to the starting worksheet
-    currentSheet.Select
+    CurrentSheet.Select
     
     Application.ScreenUpdating = True
     
@@ -572,7 +575,7 @@ Public Sub AddCheckBoxesToRange(ws As Worksheet, CheckRange As Range, _
             RotateImage ws, ImageToRotate, Increment, c.Row
         End If
         
-        ws.CheckBoxes.add(c.Left, c.Top, c.Width, c.Height).Select
+        ws.CheckBoxes.Add(c.Left, c.Top, c.Width, c.Height).Select
         With Selection
             .LinkedCell = c.Address
             .Characters.Text = ""
@@ -631,7 +634,7 @@ End Sub
 Public Sub ValidateRange(RangeToBeValidated As Range, ValueListFormula As Variant, Optional DropDown As Boolean)
     With RangeToBeValidated.Validation
         .Delete
-        .add xlValidateList, xlValidAlertStop, , ValueListFormula
+        .Add xlValidateList, xlValidAlertStop, , ValueListFormula
         .IgnoreBlank = True
         .InCellDropdown = DropDown
     End With
@@ -640,7 +643,7 @@ End Sub
 Public Sub ValidateRangeTrueFalse(RangeToBeValidated As Range, Optional DropDown As Boolean = True)
     With RangeToBeValidated.Validation
         .Delete
-        .add xlValidateList, xlValidAlertStop, , "True, False"
+        .Add xlValidateList, xlValidAlertStop, , "True, False"
         .IgnoreBlank = True
         .InCellDropdown = True
     End With
@@ -681,13 +684,13 @@ Public Function InRange(Range1 As Range, Range2 As Range) As Boolean
     InRange = Not (Application.Intersect(Range1, Range2) Is Nothing)
 End Function
 
-Public Sub SelectionFormat(ws As Worksheet, Target As Range, rng As Range, _
+Public Sub SelectionFormat(ws As Worksheet, target As Range, rng As Range, _
                      UpdateText As String, _
                      Optional ValidationColOffset As Long)
     'This routine finds the intersection of
     Dim IntersectRange As Range
 
-    Set IntersectRange = Application.Intersect(rng, Target)
+    Set IntersectRange = Application.Intersect(rng, target)
     If IntersectRange Is Nothing Then
         Exit Sub
     End If
@@ -720,13 +723,13 @@ Public Sub SelectionFormat(ws As Worksheet, Target As Range, rng As Range, _
 
 End Sub
 
-Public Sub SelectorSelect(ws As Worksheet, Target As Range, rng)
+Public Sub SelectorSelect(ws As Worksheet, target As Range, rng)
     Dim IntersectRange  As Range
     Dim TargetText      As String
     Dim InteriorColor   As Long
     Dim FontColor       As Long
     
-    Set IntersectRange = Application.Intersect(rng, Target)
+    Set IntersectRange = Application.Intersect(rng, target)
     If IntersectRange Is Nothing Then
         Exit Sub
     End If
@@ -816,29 +819,29 @@ End Sub
 Public Function GetAllFilesInFolder(HostFolderPath As String, _
                                     Optional ValidatorString As String, _
                                     Optional SkipFileString As String) As Collection
-    Dim fso, oFolder, oSubfolder, oFile, queue As Collection
+    Dim FSO, oFolder, oSubfolder, oFile, queue As Collection
     Dim FileCollection As New Collection
     
-    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set FSO = CreateObject("Scripting.FileSystemObject")
     Set queue = New Collection
-    queue.add fso.GetFolder(HostFolderPath)
+    queue.Add FSO.GetFolder(HostFolderPath)
 
     Do While queue.Count > 0
         Set oFolder = queue(1)
         queue.Remove 1 'dequeue
         '...insert any folder processing code here...
         For Each oSubfolder In oFolder.SubFolders
-            queue.add oSubfolder 'enqueue
+            queue.Add oSubfolder 'enqueue
         Next oSubfolder
         
         For Each oFile In oFolder.Files
             If InStr(1, oFile, ValidatorString) > 0 Then
                 If SkipFileString <> "" Then
                     If InStr(1, oFile, SkipFileString) = 0 Then
-                        FileCollection.add oFile
+                        FileCollection.Add oFile
                     End If
                 Else
-                    FileCollection.add oFile
+                    FileCollection.Add oFile
                 End If
             End If
         Next oFile
@@ -900,8 +903,8 @@ Public Function mergeSort(c As Collection, Optional uniq = True) As Collection
         xMax = (xMax / 2) + 0.1     ' 3 \ 2 = 1; 3 / 2 = 2; 0.1 to round up 2.5 to 3
 
         For i = 1 To xMax
-            tmp1.add c.Item(i) & "" 'force numbers to string
-            If (i < xMax) Or (i = xMax And xOdd) Then tmp2.add c.Item(i + xMax) & ""
+            tmp1.Add c.Item(i) & "" 'force numbers to string
+            If (i < xMax) Or (i = xMax And xOdd) Then tmp2.Add c.Item(i + xMax) & ""
         Next i
 
         Set tmp1 = mergeSort(tmp1, uniq)
@@ -923,20 +926,20 @@ Private Function merge(c1 As Collection, c2 As Collection, _
 
     Do While c1.Count <> 0 And c2.Count <> 0
         If c1.Item(1) > c2.Item(1) Then
-            If uniq Then tmp.add c2.Item(1), c2.Item(1) Else tmp.add c2.Item(1)
+            If uniq Then tmp.Add c2.Item(1), c2.Item(1) Else tmp.Add c2.Item(1)
             c2.Remove 1
         Else
-            If uniq Then tmp.add c1.Item(1), c1.Item(1) Else tmp.add c1.Item(1)
+            If uniq Then tmp.Add c1.Item(1), c1.Item(1) Else tmp.Add c1.Item(1)
             c1.Remove 1
         End If
     Loop
 
     Do While c1.Count <> 0
-        If uniq Then tmp.add c1.Item(1), c1.Item(1) Else tmp.add c1.Item(1)
+        If uniq Then tmp.Add c1.Item(1), c1.Item(1) Else tmp.Add c1.Item(1)
         c1.Remove 1
     Loop
     Do While c2.Count <> 0
-        If uniq Then tmp.add c2.Item(1), c2.Item(1) Else tmp.add c2.Item(1)
+        If uniq Then tmp.Add c2.Item(1), c2.Item(1) Else tmp.Add c2.Item(1)
         c2.Remove 1
     Loop
     On Error GoTo 0
@@ -964,3 +967,98 @@ Public Function LatestVersion() As Boolean
         LatestVersion = True
     End If
 End Function
+
+Public Function ColNumber(ColLetter As String) As Long
+    If ColLetter <> "" Then
+        ColNumberFromLetter = ActiveSheet.Range(ColLetter & 1).Column
+    End If
+End Function
+
+Public Function ColLetter(ColNumber As Long) As String
+    If ColNumber > 0 Then
+        ColLetter = Split(Cells(, ColNumber).Address, "$")(1)
+    End If
+End Function
+
+Public Function RangeIsEmpty(rng As Range) As Boolean
+    If WorksheetFunction.CountA(rng) = 0 Then
+        RangeIsEmpty = True
+    End If
+End Function
+
+Public Sub FreezePanes(ws As Worksheet, _
+                       Optional SplitRow As Long, _
+                       Optional SplitColumn As Long)
+    Dim CurrentSheet As Worksheet
+    
+    If SplitRow = 0 Then
+        SplitRow = DataStartRow
+    End If
+    
+     '// store current sheet
+    Set CurrentSheet = ActiveSheet
+     
+     '// Stop flickering...
+    Application.ScreenUpdating = False
+              
+     '// Have to activate - SplitColumn and SplitRow are properties
+     '// of ActiveSheet
+    ws.Activate
+     
+    With ActiveWindow
+        'reset: may not be necessary
+        .FreezePanes = False
+        .SplitColumn = SplitColumn
+        .SplitRow = SplitRow
+        .FreezePanes = True
+    End With
+     
+     '// Back to original sheet
+    CurrentSheet.Activate
+    Application.ScreenUpdating = True
+     
+    Set ws = Nothing
+    Set CurrentSheet = Nothing
+     
+End Sub
+
+Public Function QuerySheetDAO(DataSetRange As Range, _
+                           Query As String, _
+                           PasteCellRange As Range, _
+                           Optional SourceFullPathName As String)
+    'This function requires reference to the
+    'Microsoft DAO 3.5 Object Library
+    
+    Const stExtens As String = "Excel 8.0;HDR=Yes;"
+'    QueryExample = "SELECT * FROM [Sheet2$] WHERE Dept='cc';"
+     
+     'Variables for DAO.
+    Dim DAO_ws As DAO.Workspace
+    Dim DAO_db As DAO.Database
+    Dim DAO_rs As DAO.Recordset
+    Dim SourceFullPathName As String
+     
+    If SourceFullPathName = "" Then
+        SourceFullPathName = ActiveWorkbook.FullName
+    End If
+    
+     'Instantiate the DAO objects.
+    Set DAO_ws = DBEngine.Workspaces(0)
+    Set DAO_db = DAO_ws.OpenDatabase(SourceFullPathName, False, True, stExtens)
+    Set DAO_rs = DAO_db.OpenRecordset(stSQL, dbOpenForwardOnly)
+     
+     'Write the Recordset to the target range.
+    PasteCellRange.CopyFromRecordset DAO_rs
+     
+     'Close.
+    DAO_rs.Close
+    DAO_db.Close
+    DAO_ws.Close
+     
+     'Release objects from memory.
+    Set DAO_rs = Nothing
+    Set DAO_db = Nothing
+    Set DAO_ws = Nothing
+                           
+End Function
+
