@@ -1022,21 +1022,21 @@ Public Sub FreezePanes(ws As Worksheet, _
      
 End Sub
 
-Public Function QuerySheetDAO(DataSetRange As Range, _
-                           Query As String, _
-                           PasteCellRange As Range, _
-                           Optional SourceFullPathName As String)
-    'This function requires reference to the
-    'Microsoft DAO 3.5 Object Library
+Public Sub QuerySheetDAO(sql As String, _
+                         PasteCellRange As Range, _
+                         Optional SourceFullPathName As String)
+    ' This function requires reference to the
+    ' Microsoft DAO 3.5 Object Library
+    ' QueryExample:
+    ' "SELECT * FROM [Sheet2$] WHERE Dept='cc';"
+    ' "Select * from [NamedRange];"
     
     Const stExtens As String = "Excel 8.0;HDR=Yes;"
-'    QueryExample = "SELECT * FROM [Sheet2$] WHERE Dept='cc';"
      
      'Variables for DAO.
     Dim DAO_ws As DAO.Workspace
     Dim DAO_db As DAO.Database
     Dim DAO_rs As DAO.Recordset
-    Dim SourceFullPathName As String
      
     If SourceFullPathName = "" Then
         SourceFullPathName = ActiveWorkbook.FullName
@@ -1045,7 +1045,7 @@ Public Function QuerySheetDAO(DataSetRange As Range, _
      'Instantiate the DAO objects.
     Set DAO_ws = DBEngine.Workspaces(0)
     Set DAO_db = DAO_ws.OpenDatabase(SourceFullPathName, False, True, stExtens)
-    Set DAO_rs = DAO_db.OpenRecordset(stSQL, dbOpenForwardOnly)
+    Set DAO_rs = DAO_db.OpenRecordset(sql, dbOpenForwardOnly)
      
      'Write the Recordset to the target range.
     PasteCellRange.CopyFromRecordset DAO_rs
@@ -1060,5 +1060,5 @@ Public Function QuerySheetDAO(DataSetRange As Range, _
     Set DAO_db = Nothing
     Set DAO_ws = Nothing
                            
-End Function
+End Sub
 
