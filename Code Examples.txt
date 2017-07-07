@@ -1,0 +1,1226 @@
+
+'----------------------------------------------------------------------------------------------------------
+'Filter
+'----------------------------------------------------------------------------------------------------------
+
+Public Sub UpdateWeldProcedureFilter(frm As Form)
+
+    'This function takes care of updating the weld procedure table.
+    'It uses an SQL statement for the record source, and filters reports this way
+    Dim strOldRecordSource As String
+    Dim strNewRecordSource As String
+    Dim strBaseRecordSource As String
+    
+    'Remember the old record source, so we don't have to change it if it's not nessisary
+    strOldRecordSource = frm.RecordSource
+    strBaseRecordSource = "SELECT DISTINCT tblProcedure.Procedure, tblProcedure.ProcedureLink, tblProcedure.ProcedureID, tblProcedure.Title FROM tblProcedure RIGHT JOIN (tblLocation RIGHT JOIN tblLocPointer ON tblLocation.LocationID = tblLocPointer.LocationID) ON tblProcedure.ProcedureID = tblLocPointer.ProcedureID"
+
+    strNewRecordSource = strBaseRecordSource
+    
+    'Go through each of the filter critera, and add it to the WHERE clause if necissary.
+    If Not IsNull(frm!cboCategory) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((tblLocation.Category) = '" & frm!cboCategory & "')"
+    
+    End If
+
+    If Not IsNull(frm!cboGroup) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((tblLocation.Group) = '" & frm!cboGroup & "')"
+    
+    End If
+
+    If Not IsNull(frm!cboLocation) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((tblLocation.Location) = '" & frm!cboLocation & "')"
+    
+    End If
+
+    If strNewRecordSource <> strBaseRecordSource Then
+        strNewRecordSource = strNewRecordSource & ")"
+    End If
+        
+    
+    'Add on an ORDER BY Procedure
+        strNewRecordSource = strNewRecordSource & " ORDER BY tblProcedure.Procedure "
+
+    If Not IsNull(frm!cboOrderByAscDec) Then
+        If frm!cboOrderByAscDec = "Ascending" Then
+            strNewRecordSource = strNewRecordSource & "ASC"
+        Else
+            strNewRecordSource = strNewRecordSource & "DESC"
+        End If
+    Else
+        strNewRecordSource = strNewRecordSource & "ASC"
+    End If
+
+    strNewRecordSource = strNewRecordSource & " WITH OWNERACCESS OPTION;"
+
+    'And apply to the record source if it's changed.
+    If strNewRecordSource <> strOldRecordSource Then
+
+        frm.RecordSource = strNewRecordSource
+
+    End If
+    
+    frm.cboCategory.SetFocus
+
+End Sub
+
+
+
+
+'----------------------------------------------------------------------------------------------------------
+'Disable Save
+'----------------------------------------------------------------------------------------------------------
+
+Disable Save
+
+Private Sub Document_Close()
+Me.Saved = True
+End Sub
+
+
+ 
+Sub disableFilesave()
+Sub FileSave()
+End Sub
+
+Sub disablefileSaveAs()
+Sub FileSaveAs()
+End Sub
+
+Sub disableSaveAsWebPage()
+Sub FileSaveAsWebPage()
+End Sub
+
+Sub DisableFileOpen()
+Sub FileOpen()
+End Sub
+
+Sub DisableFileSaveHtml()
+Sub FileSaveHtml()
+End Sub
+
+Sub DisableWebPagePreview()
+Sub WebPagePreview()
+End Sub
+
+Sub DisableFileNew()
+Sub FileNew()
+End Sub
+
+Sub DisableSaveTemplate()
+Sub SaveTemplate()
+End Sub
+
+Sub DisableFileVersions()
+Sub FileVersions()
+End Sub
+
+Sub DisableFileVersionsServers()
+Sub FileVersionsServers()
+End Sub
+
+Sub DisableFilePrint()
+Sub FilePrint()
+End Sub
+
+Sub DisableFilePrintPreview()
+Sub FilePrintPreview()
+End Sub
+
+Sub DisableFilePrintSetup()
+Sub FilePrintSetup()
+End Sub
+
+Sub DisableFileProperties()
+Sub FileProperties()
+End Sub
+
+Sub DisableFileSaveAll()
+Sub FileSaveAll()
+End Sub
+
+Sub DisableFilePageSetup()
+Sub FilePageSetup()
+End Sub
+
+Sub DisableFaxService()
+Sub FaxService()
+End Sub
+
+Sub DisableFileConfirmConversions()
+Sub FileConfirmConversions()
+End Sub
+
+Sub DisableFileFind()
+Sub FileFind()
+End Sub
+
+Sub DisableFileExit()
+Sub FileExit()
+End Sub
+
+Sub DisableFileNewContext()
+Sub FileNewContext()
+End Sub
+
+Sub DisableFileOpenFile()
+Sub FileOpenFile()
+End Sub
+
+Sub DisableFileSaveFrameAs()
+Sub FileSaveFrameAs()
+End Sub
+
+Sub DisableMailAsHtml()
+Sub MailAsHtml()
+End Sub
+
+Sub DisableMailAsPlainText()
+Sub MailAsPlainText()
+End Sub
+
+Sub DisableMailAsRTF()
+Sub MailAsRTF()
+End Sub
+
+Sub DisableOrganizer()
+Sub Organizer()
+End Sub
+
+Sub DisableSendToFax()
+Sub SendToFax()
+End Sub
+
+Sub DisableSignOutOfPassport()
+Sub SignOutOfPassport()
+End Sub
+
+Sub DisableSendForReview()
+Sub SendForReview()
+End Sub
+
+
+'----------------------------------------------------------------------------------------------------------
+'Error Handler
+'----------------------------------------------------------------------------------------------------------
+
+Public Sub MySub(frm as Form)
+On Error GoTo MySub_ErrorHandler
+
+'code
+
+Exit Sub
+
+MySub_ErrorHandler:
+	Dim intOK As Integer
+    	intOK = MsgBox("Error while running." & Chr(10) & Chr(10) & "Error " & Err.Number & ": " & Err.Description & Chr(10) & Chr(10) & "Please contact the database administrator.", , "Error")
+    Exit Sub
+
+End Sub
+
+
+'------------
+Handling smaller errors
+'------------
+On Error Resume Next
+	'code
+
+
+*********************************************************************************************************************************
+'----------------------------------------------------------------------------------------------------------
+'Opening ADODB Recordset, loop through
+'----------------------------------------------------------------------------------------------------------
+
+Dim rsMyDatabase As New ADODB.Recordset
+    rsMyDatabase.Open "MyTable", CurrentProject.Connection, adOpenKeyset, adLockOptimistic
+
+
+
+
+'This function goes through each entry in the FileList, and updates the database if necessary
+
+    DoCmd.Hourglass True
+    DoCmd.OpenForm "SearchFileList"
+    
+    'Open the Recordset
+    Dim rsReportDatabase As New ADODB.Recordset
+    rsReportDatabase.Open "ReportDatabase", CurrentProject.Connection, adOpenKeyset, adLockOptimistic
+    
+    Dim i As Integer
+    Dim test As String
+    
+    For i = 1 To DCount("FileName", "FileList")
+    
+    DoCmd.GoToRecord acDataForm, "SearchFileList", acGoTo, i
+    'The following two lines search for a report named the same as the file list,
+    'This is faster than doing a DLookup, because of the multiple times this is done
+    '(It only needs to read the external file once)
+    rsReportDatabase.Filter = "ReportName = '" & Forms!SearchFileList!FileName & "'"
+    If rsReportDatabase.EOF = True And InStr(1, Forms!SearchFileList!FilePath, "I:\") = 0 And Left(Forms!SearchFileList!FileName, 2) <> "~$" Then
+        
+    Dim strFilePath As String
+    Dim appWord As Object
+    Dim doc As Object
+    Dim blnQuitWord As Boolean
+    Dim reportDate As Date
+    Dim LstrShovel As String
+    Dim RstrShovel As String
+    Dim strShovel As String
+    Dim lngShovel As Long
+    Dim SMUHours As Long
+    Dim strDiscipline As String
+    Dim strInspectionType As String
+    Dim strKeyWords As String
+    Dim strLocation As String
+    Dim strSubLocation1 As String
+    Dim strSubLocation2 As String
+    Dim strSubLocation3 As String
+    Dim strSubLocation4 As String
+    Dim intCrackLength As Integer
+    Dim bteNewCrack As Byte
+    Dim btePropCrack As Byte
+        
+    strFilePath = Forms!SearchFileList!FilePath
+    
+    'Open inspection report in word
+    Set appWord = New Word.Application
+    With appWord
+        Set doc = appWord.Documents.Open(strFilePath, , True, , , , , , , , , , , False)
+        .Visible = False
+        .WindowState = wdWindowStateMinimize
+    End With
+    
+    'Check to see if date field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldInspectionDate") = True Then
+        If IsEmpty(doc.formfields("fldInspectionDate").Result) Or doc.formfields("fldInspectionDate").Result = "" Or doc.formfields("fldInspectionDate").Result = " " Then
+            reportDate = 0
+        Else
+            reportDate = doc.formfields("fldInspectionDate").Result
+        End If
+    Else
+        reportDate = 0
+    End If
+    
+    'Check to see if Shovel field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldShovelNumber") = True Then
+        If IsEmpty(doc.formfields("fldShovelNumber").Result) Or doc.formfields("fldShovelNumber").Result = "" Or doc.formfields("fldShovelNumber").Result = " " Then
+            strShovel = 0
+        Else
+            strShovel = Left(Right(doc.formfields("fldShovelNumber").Result, 6), 3)
+            strShovel = "4511" & strShovel
+        End If
+    Else
+        strShovel = 0
+    End If
+    
+    'Check to see if SMU hours field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldSMUHours") = True Then
+        If IsEmpty(doc.formfields("fldSMUHours").Result) Or doc.formfields("fldSMUHours").Result = "" Or doc.formfields("fldSMUHours").Result = " " Then
+            SMUHours = 0
+        Else
+            SMUHours = doc.formfields("fldSMUHours").Result
+        End If
+    Else
+        SMUHours = 0
+    End If
+    
+    'Check to see if Discipline field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldDiscipline") = True Then
+        strDiscipline = doc.formfields("fldDiscipline").Result
+    Else
+        strDiscipline = "N/A"
+    End If
+    
+    'Check to see if Inspection Type field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldInspectionType") = True Then
+        If IsEmpty(doc.formfields("fldInspectionType").Result) Or doc.formfields("fldInspectionType").Result = "" Or doc.formfields("fldInspectionType").Result = " " Then
+            strInspectionType = "N/A"
+        Else
+            strInspectionType = doc.formfields("fldInspectionType").Result
+        End If
+    Else
+        strInspectionType = "N/A"
+    End If
+    
+    'Check to see if KeyWords field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldKeyWords") = True Then
+        If IsEmpty(doc.formfields("fldKeyWords").Result) Or doc.formfields("fldKeyWords").Result = "" Or doc.formfields("fldKeyWords").Result = " " Then
+            strKeyWords = "N/A"
+        Else
+            strKeyWords = doc.formfields("fldKeyWords").Result
+        End If
+    Else
+        strKeyWords = "N/A"
+    End If
+    
+   'Check to see if Location field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldSystem") = True Then
+        If IsEmpty(doc.formfields("fldSystem").Result) Or doc.formfields("fldSystem").Result = "" Or doc.formfields("fldSystem").Result = "N/A" Then
+            strLocation = "N/A"
+        Else
+            strLocation = doc.formfields("fldSystem").Result
+        End If
+    Else
+        strLocation = "N/A"
+    End If
+
+    'Check to see if SubLocation1 field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldComponent1") = True Then
+        If IsEmpty(doc.formfields("fldComponent1").Result) Or doc.formfields("fldComponent1").Result = "" Or doc.formfields("fldComponent1").Result = "N/A" Then
+            strSubLocation1 = "N/A"
+        Else
+            strSubLocation1 = doc.formfields("fldComponent1").Result
+        End If
+    Else
+        strSubLocation1 = "N/A"
+    End If
+    
+    'Check to see if SubLocation2 field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldComponent2") = True Then
+        If IsEmpty(doc.formfields("fldComponent2").Result) Or doc.formfields("fldComponent2").Result = "" Or doc.formfields("fldComponent2").Result = "N/A" Then
+            strSubLocation2 = "N/A"
+        Else
+            strSubLocation2 = doc.formfields("fldComponent2").Result
+        End If
+    Else
+        strSubLocation2 = "N/A"
+    End If
+    
+    'Check to see if SubLocation3 field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldComponent3") = True Then
+        If IsEmpty(doc.formfields("fldComponent3").Result) Or doc.formfields("fldComponent3").Result = "" Or doc.formfields("fldComponent3").Result = "N/A" Then
+            strSubLocation3 = "N/A"
+        Else
+            strSubLocation3 = doc.formfields("fldComponent1").Result
+        End If
+    Else
+        strSubLocation3 = "N/A"
+    End If
+    
+    'Check to see if SubLocation4 field exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldComponent4") = True Then
+        If IsEmpty(doc.formfields("fldComponent4").Result) Or doc.formfields("fldComponent4").Result = "" Or doc.formfields("fldComponent4").Result = "N/A" Then
+            strSubLocation4 = "N/A"
+        Else
+            strSubLocation4 = doc.formfields("fldComponent1").Result
+        End If
+    Else
+        strSubLocation4 = "N/A"
+    End If
+    
+    'Check to see if Crack fields exists in docuemnt, and if so, retrieve data
+    If doc.Bookmarks.Exists("fldLength") = True Then
+        If IsNumeric(doc.formfields("fldLength").Result) = True Then
+            intCrackLength = doc.formfields("fldLength").Result
+        Else
+            intCrackLength = 0
+        End If
+    Else
+            intCrackLength = 0
+    End If
+    
+    If doc.Bookmarks.Exists("fldNewCrack") = True Then
+        bteNewCrack = doc.formfields("fldNewCrack").Result
+    Else
+        bteNewCrack = 0
+    End If
+    
+    If doc.Bookmarks.Exists("fldPropCrack") = True Then
+        btePropCrack = doc.formfields("fldPropCrack").Result
+    Else
+        btePropCrack = 0
+    End If
+    
+            rsReportDatabase.AddNew
+            rsReportDatabase("Report") = Forms!SearchFileList!FileName & "#" & Forms!SearchFileList!FilePath & "##"
+            rsReportDatabase("ReportName") = Forms!SearchFileList!FileName
+            rsReportDatabase("Date") = reportDate
+            rsReportDatabase("Shovel") = strShovel
+            rsReportDatabase("SMU Hours") = SMUHours
+            
+        If doc.Bookmarks.Exists("fldDiscipline") = True Then
+            rsReportDatabase("Category") = strDiscipline
+            rsReportDatabase("Inspection Type") = strInspectionType
+        Else
+            If Right(strLocation, 10) = "INSPECTION" Then
+                rsReportDatabase("Inspection Type") = strLocation
+            End If
+            rsReportDatabase("Category") = strInspectionType
+        End If
+            
+            rsReportDatabase("KeyWord") = strKeyWords
+            rsReportDatabase("Location") = strLocation
+            rsReportDatabase("SubLocation1") = strSubLocation1
+            rsReportDatabase("SubLocation2") = strSubLocation2
+            rsReportDatabase("SubLocation3") = strSubLocation3
+            rsReportDatabase("SubLocation4") = strSubLocation4
+            rsReportDatabase("Crack length") = intCrackLength
+            rsReportDatabase("New Crack") = bteNewCrack
+            rsReportDatabase("Prop Crack") = btePropCrack
+            rsReportDatabase("Description") = LookupDescription(Forms!SearchFileList!FilePath)
+            rsReportDatabase.Update
+        
+        'doc.Close
+        If blnQuitWord Then appWord.Quit
+Cleanup:
+        Set doc = Nothing
+        Set appWord = Nothing
+        
+    End If
+    Next i
+    
+    rsReportDatabase.Close
+    
+    DoCmd.Close acForm, "SearchFileList", acSaveNo
+    DoCmd.Close acForm, "SearchShovelFileList", acSaveNo
+    DoCmd.Hourglass False
+    
+    Dim rsLastUpdate As New ADODB.Recordset
+    rsLastUpdate.Open "LastUpdated", CurrentProject.Connection, adOpenKeyset, adLockOptimistic
+    rsLastUpdate.MoveFirst
+    rsLastUpdate("Date Updated") = FormatDateTime(Now(), vbShortDate)
+    rsLastUpdate.Update
+    rsLastUpdate.Close
+    
+    Exit Sub
+    
+UpdateReportDatabaseErrorHandler:
+
+    Dim intOK As Integer
+   intOK = MsgBox("Error while updating database with document information." & Chr(10) & Chr(10) & "Error " & Err.Number & ": " & Err.Description & Chr(10) & Chr(10) & "Please contact the database administrator.", , "Error")
+    Exit Sub
+
+End Sub
+
+
+*********************************************************************************************************************************
+
+
+
+
+
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Building and sql statement to filter based on form controls
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+Public Sub UpdateReportTableFilter(frm As Form)
+On Error GoTo UpdateReportTableFilterErrorHandler
+
+    'This function takes care of updating the report table.
+    'It uses an SQL statement for the record source, and filters reports this way
+    Dim strOldRecordSource As String
+    Dim strNewRecordSource As String
+    Dim strBaseRecordSource As String
+    
+    'Remember the old record source, so we don't have to change it if it's not nessisary
+    strOldRecordSource = frm.RecordSource
+    strBaseRecordSource = "SELECT ReportDatabase.[Report Number], ReportDatabase.Date, ReportDatabase.Shovel, ReportDatabase.[SMU Hours], ReportDatabase.Report, ReportDatabase.ReportName, ReportDatabase.Location, 	ReportDatabase.SubLocation1, ReportDatabase.SubLocation2, ReportDatabase.SubLocation3, ReportDatabase.SubLocation4, ReportDatabase.KeyWord, ReportDatabase.Description, ReportDatabase.Warranty, ReportDatabase.WO, 	ReportDatabase.Comments, ReportDatabase.Category, ReportDatabase.[Crack Length], ReportDatabase.[New Crack], ReportDatabase.[Inspection Type], ReportDatabase.[Prop Crack], ShovelList.Type, ShovelList.Mine FROM ReportDatabase LEFT 	JOIN ShovelList ON ReportDatabase.Shovel = ShovelList.Shovel"
+    strNewRecordSource = strBaseRecordSource
+    
+    
+    'Go through each of the filter critera, and add it to the WHERE clause if necissary.
+
+    If IsDate(frm!FilterStartDate) And Not IsDate(frm!FilterEndDate) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+            
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.Date) >= #" & frm!FilterStartDate & "#)"
+    End If
+    
+    If Not IsDate(frm!FilterStartDate) And IsDate(frm!FilterEndDate) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+            
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.Date) <= #" & frm!FilterEndDate & "#)"
+    End If
+    
+    If IsDate(frm!FilterStartDate) And IsDate(frm!FilterEndDate) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+            
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.Date) Between #" & frm!FilterStartDate & "# And #" & frm!FilterEndDate & "#)"
+    End If
+    
+    If Not IsNull(frm!FilterReportName) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.ReportName) Like '*" & frm!FilterReportName & "*')"
+    End If
+    
+    If Not IsNull(frm!FilterShovel) Then
+        If Not IsNull(DLookup("Type", "ShovelList", "Shovel = " & frm!FilterShovel)) Then
+            If strNewRecordSource = strBaseRecordSource Then
+                strNewRecordSource = strNewRecordSource & " WHERE ("
+            Else
+                strNewRecordSource = strNewRecordSource & " AND "
+            End If
+        
+            strNewRecordSource = strNewRecordSource & "((ReportDatabase.Shovel) = " & frm!FilterShovel & ")"
+        End If
+    End If
+    
+    If Not IsNull(frm!FilterLowSMUHours) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.[SMU Hours]) >= " & frm!FilterLowSMUHours & ")"
+    End If
+    
+    If Not IsNull(frm!FilterHighSMUHours) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.[SMU Hours]) <= " & frm!FilterHighSMUHours & ")"
+    End If
+    
+    'Add Crack Length range in the "where" clause
+    If Not IsNull(frm!filterLowCrackLength) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.[Crack Length]) >= " & frm!filterLowCrackLength & ")"
+    End If
+
+    If Not IsNull(frm!filterHighCrackLength) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.[Crack Length]) <= " & frm!filterHighCrackLength & ")"
+    End If
+    
+    If Not IsNull(frm!FilterType) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ShovelList.Type) = '" & frm!FilterType & "')"
+    
+    End If
+    
+    If Not IsNull(frm!filterMine) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ShovelList.Mine) = '" & frm!filterMine & "')"
+    End If
+    
+    If Not IsNull(frm!FilterCategory) Then
+        If frm!FilterCategory = "Mechanical" Or frm!FilterCategory = "Electrical" Or frm!FilterCategory = "NDT" Then
+            If strNewRecordSource = strBaseRecordSource Then
+                strNewRecordSource = strNewRecordSource & " WHERE ("
+            Else
+                strNewRecordSource = strNewRecordSource & " AND "
+            End If
+            
+            strNewRecordSource = strNewRecordSource & "((ReportDatabase.Category) = '" & frm!FilterCategory & "')"
+        End If
+    End If
+    
+    If Not IsNull(frm!FilterKeyWord) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.KeyWord) Like '*" & frm!FilterKeyWord & "*')"
+    End If
+    
+    'add Description search to the "where" clause
+    If Not IsNull(frm!filterDescription) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.Description) Like '*" & frm!filterDescription & "*')"
+    End If
+
+    If Not IsNull(frm!FilterLocation) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.Location) Like '*" & frm!FilterLocation & "*')"
+    End If
+    
+    If Not IsNull(frm!FilterSubLocation1) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.SubLocation1) Like '*" & frm!FilterSubLocation1 & "*')"
+    End If
+    
+    If Not IsNull(frm!FilterSubLocation2) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.SubLocation2) Like '*" & frm!FilterSubLocation2 & "*')"
+    End If
+    
+    If Not IsNull(frm!FilterSubLocation3) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.SubLocation3) Like '*" & frm!FilterSubLocation3 & "*')"
+    End If
+    
+    If Not IsNull(frm!FilterSubLocation4) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.SubLocation4) Like '*" & frm!FilterSubLocation4 & "*')"
+    End If
+    
+    If Not IsNull(frm!filterInspectionType) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+
+        strNewRecordSource = strNewRecordSource & "((ReportDatabase.[Inspection Type]) Like '" & frm!filterInspectionType & "')"
+    End If
+    
+            'add New Crack search to the "where" clause
+    If (frm!filterNewCrack) = True Or (frm!filterPropCrack) = True Then
+
+        If (frm!filterNewCrack) = True And (frm!filterPropCrack) = True Then
+                If strNewRecordSource = strBaseRecordSource Then
+                    strNewRecordSource = strNewRecordSource & " WHERE ("
+                Else
+                    strNewRecordSource = strNewRecordSource & " AND "
+                End If
+
+                strNewRecordSource = strNewRecordSource & "(ReportDatabase.[New Crack] = -1 Or ReportDatabase.[Prop Crack] = -1)"
+  
+        Else
+            If (frm!filterNewCrack) = True And (frm!filterPropCrack) = False Then
+                If strNewRecordSource = strBaseRecordSource Then
+                    strNewRecordSource = strNewRecordSource & " WHERE ("
+                Else
+                    strNewRecordSource = strNewRecordSource & " AND "
+                End If
+
+                strNewRecordSource = strNewRecordSource & "((ReportDatabase.[New Crack]) = -1 AND (ReportDatabase.[Prop Crack] = 0 Or ReportDatabase.[Prop Crack] = -1))"
+        Else
+                If strNewRecordSource = strBaseRecordSource Then
+                    strNewRecordSource = strNewRecordSource & " WHERE ("
+                Else
+                    strNewRecordSource = strNewRecordSource & " AND "
+                End If
+
+                strNewRecordSource = strNewRecordSource & "((ReportDatabase.[Prop Crack]) = -1 AND (ReportDatabase.[New Crack] = 0 Or ReportDatabase.[New Crack] = -1))"
+            
+        End If
+    End If
+Else
+End If
+'----------------------------------------------------------------------------------------------------------------------++
+Filter many locations based on one combobox
+'----------------------------------------------------------------------------------------------------------------------++
+    If Not IsNull(frm!filterLocationSearch) Then
+        If strNewRecordSource = strBaseRecordSource Then
+            strNewRecordSource = strNewRecordSource & " WHERE ("
+        Else
+            strNewRecordSource = strNewRecordSource & " AND "
+        End If
+        
+        'This is the only different one, it filters all the locations and report name based on the one field
+        strNewRecordSource = strNewRecordSource & "(((ReportDatabase.Location) Like '*" & frm!filterLocationSearch & "*')"
+        strNewRecordSource = strNewRecordSource & " OR ((ReportDatabase.SubLocation1) Like '*" & frm!filterLocationSearch & "*')"
+        strNewRecordSource = strNewRecordSource & " OR ((ReportDatabase.SubLocation2) Like '*" & frm!filterLocationSearch & "*')"
+        strNewRecordSource = strNewRecordSource & " OR ((ReportDatabase.SubLocation3) Like '*" & frm!filterLocationSearch & "*')"
+        strNewRecordSource = strNewRecordSource & " OR ((ReportDatabase.SubLocation4) Like '*" & frm!filterLocationSearch & "*')"
+        strNewRecordSource = strNewRecordSource & " OR ((ReportDatabase.ReportName) Like '*" & frm!filterLocationSearch & "*'))"
+        
+    End If
+'----------------------------------------------------------------------------------------------------------------------++    
+    
+    If strNewRecordSource <> strBaseRecordSource Then
+        strNewRecordSource = strNewRecordSource & ")"
+    End If
+    
+    'Tack an ORDER BY clause on the end
+    If Not IsNull(frm!OrderByField) Then
+        strNewRecordSource = strNewRecordSource & " ORDER BY ReportDatabase.[" & frm!OrderByField & "] "
+    Else
+        strNewRecordSource = strNewRecordSource & " ORDER BY ReportDatabase.Date"
+    End If
+
+    If Not IsNull(frm!OrderByAscDesc) Then
+        If frm!OrderByAscDesc = "Ascending" Then
+            strNewRecordSource = strNewRecordSource & " ASC"
+        Else
+            strNewRecordSource = strNewRecordSource & " DESC"
+        End If
+    Else
+        strNewRecordSource = strNewRecordSource & " DESC"
+    End If
+
+    strNewRecordSource = strNewRecordSource & " WITH OWNERACCESS OPTION;"
+
+    'And apply to the record source if it's changed.
+    If strNewRecordSource <> strOldRecordSource Then
+
+        frm.RecordSource = strNewRecordSource
+
+    End If
+    
+    frm.FilterStartDate.SetFocus
+    
+    Exit Sub
+
+
+
+
+
+
+
+
+
+'--------------------------------------------------------------------------------------------------------------------------------------
+Function to retrieve the 150 characters after the word "Description" in a word doc
+'--------------------------------------------------------------------------------------------------------------------------------------
+
+
+Public Function LookupDescription(strFilePath As String) As String
+On Error GoTo LookupDescriptionErrorHandler
+    'This function pulls the first string of more than 45 characters
+    'This will generally give a description of what's in the report
+    'Although sometimes it says nothing at all.
+    
+    Dim appWord As Word.Application
+    Dim doc As Word.Document
+    Dim lngFileLen As Long
+    Dim strReportFile1 As String
+    Dim strReportFile2 As String
+    Dim strDescription As String
+    Dim strChar As String
+    Dim lngPos1 As Long
+    Dim lngPos2 As Long
+    Dim boolTest As Boolean
+    Dim intMinDescLen As Integer
+    
+    
+    'Open inspection report in word
+    Set appWord = GetObject(, "Word.Application")
+    With appWord
+        Set doc = appWord.Documents.Open(strFilePath, , True, , , , , , , , , , , False)
+'        .WordBasic.DisableAutoMacros 1
+        .Visible = False
+        '.WindowState = wdWindowStateMinimize
+        
+    End With
+    
+    intMinDescLen = 45
+    
+    lngFileLen = doc.Characters.Count
+   
+    strReportFile1 = doc.Content
+    
+    'If the word 'DESCRIPTION:' is in the file, chop of everything before that
+    'This makes getting the description faster.
+    If InStr(1, strReportFile1, "DESCRIPTION:") Then
+        strReportFile1 = Right(strReportFile1, Len(strReportFile1) - InStr(1, strReportFile1, "DESCRIPTION:") - 11)
+        intMinDescLen = 22
+    End If
+    
+    'Now we enter a funky loop that checks for a string of 45 or more valid characters.
+    'It's a little wierd how it does it, but it works.
+    strChar = Left(strReportFile1, 1)
+    If strChar >= " " And strChar <= "Z" And strChar <= "-" And strChar <= "  " And strChar <= "'" And strChar <= Chr(10) Then
+        If Not IsNull(DLookup("CharacterNumber", "CharacterList", "Character = '" & strChar & "'")) Then
+            boolTest = True
+        Else
+            boolTest = False
+        End If
+    Else
+        boolTest = False
+    End If
+        
+
+    Do While Len(strDescription) <= intMinDescLen Or InStr(1, strDescription, "INSPECTION RESULTS") <> 0 Or InStr(1, strDescription, "") <> 0 Or InStr(1, strDescription, "WORK REQUIRED") <> 0 Or InStr(1, strDescription, "SUBCOMP") <> 0 Or InStr(1, strDescription, Chr(10) & Chr(10)) <> 0
+    
+        Do While Not boolTest
+        
+            If Len(strReportFile1) = 0 Then
+                LookupDescription = "N/A"
+                Exit Function
+            End If
+    
+            strReportFile1 = Right(strReportFile1, Len(strReportFile1) - 1)
+            strChar = Left(strReportFile1, 1)
+            If strChar >= " " And strChar <= "Z" And strChar >= "-" Then
+                If Not IsNull(DLookup("CharacterNumber", "CharacterList", "Character = '" & strChar & "'")) Or strChar = " " Then
+                    boolTest = True
+                Else
+                    boolTest = False
+                End If
+            Else
+                boolTest = False
+            End If
+        
+        Loop
+    
+        strDescription = ""
+    
+        strReportFile2 = strReportFile1
+        strChar = Left(strReportFile2, 1)
+    
+        Do While boolTest
+
+            strDescription = strDescription & Left(strReportFile2, 1)
+            
+            If Len(strReportFile2) = 0 Then
+                LookupDescription = "N/A"
+                Exit Function
+            End If
+            
+            strReportFile2 = Right(strReportFile2, Len(strReportFile2) - 1)
+            strChar = Left(strReportFile2, 1)
+            
+            If strChar >= " " And strChar <= "Z" Or strChar = "-" Or strChar = "    " Then
+                If (Not IsNull(DLookup("CharacterNumber", "CharacterList", "Character = '" & strChar & "'"))) Or (strChar = " " And Right(strDescription, 1) <> " ") Then
+                    boolTest = True
+                Else
+                    boolTest = False
+                End If
+            Else
+                boolTest = False
+            End If
+        
+        Loop
+        
+        strReportFile1 = strReportFile2
+        
+    Loop
+    
+    
+    'If the string it pulls out is longer than 150 characters,
+    'truncate the string to the first 150.
+    If Len(strDescription) > 150 Then
+        strDescription = Left(strDescription, 150)
+    End If
+    
+    LookupDescription = strDescription
+    
+    Exit Function
+    
+LookupDescriptionErrorHandler:
+    Dim intOK As Integer
+
+
+
+
+'--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Does Access Object Exists 
+To avoid errors you should always check before accessing an object if it exists.
+Sample call: MyTest = ObjectExists("Table", "MyTableName")
+or         : If Not ObjectExists("Table", "MyTableName") Then ...
+
+'---------------------------------------------------------------------
+' ObjectExists:  Find if the object exists in DB
+'---------------------------------------------------------------------
+' Pass the Object type: Table, Query, Form, Report, Macro, or Module
+' Pass the Object Name
+' Function returns boolean "Yes/NO"
+Function ObjectExists(strObjectType As String, strObjectName As String) As Boolean
+     Dim db As Database
+     Dim tbl As TableDef
+     Dim qry As QueryDef
+     Dim i As Integer
+     
+     Set db = CurrentDb()
+     ObjectExists = False
+     
+     If strObjectType = "Table" Then
+          For Each tbl In db.TableDefs
+               If tbl.Name = strObjectName Then
+                    ObjectExists = True
+                    Exit Function
+               End If
+          Next tbl
+     ElseIf strObjectType = "Query" Then
+          For Each qry In db.QueryDefs
+               If qry.Name = strObjectName Then
+                    ObjectExists = True
+                    Exit Function
+               End If
+          Next qry
+     ElseIf strObjectType = "Form" Or strObjectType = "Report" Or strObjectType = "Module" Then
+          For i = 0 To db.Containers(strObjectType & "s").Documents.Count - 1
+               If db.Containers(strObjectType & "s").Documents(i).Name = strObjectName Then
+                    ObjectExists = True
+                    Exit Function
+               End If
+          Next i
+     ElseIf strObjectType = "Macro" Then
+          For i = 0 To db.Containers("Scripts").Documents.Count - 1
+               If db.Containers("Scripts").Documents(i).Name = strObjectName Then
+                    ObjectExists = True
+                    Exit Function
+               End If
+          Next i
+     Else
+          MsgBox "Invalid Object Type, must be Table, Query, Form, Report, Macro, or Module"
+     End If  
+End Function
+'-------------- END ObjectExists ----------------------
+    intOK = MsgBox("Error while looking for description." & Chr(10) & Chr(10) & "Error " & Err.Number & ": " & Err.Description & Chr(10) & Chr(10) & "Please contact the database administrator.", , "Error")
+    LookupDescription = ""
+    Exit Function
+
+End Function
+
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+If you have a requirement to disable certain controls, you can set the tab property for these controls to a string and then iterate through the form's control collection to disable those controls.
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Dim frm As Form
+Dim ctl As Control
+
+Set frm = Forms!MyOpenForm
+
+For Each ctl In frm.Controls
+
+    If ctl.ControlType <> acLabel And ctl.ControlType <> acTabCtl Then
+        If ctl.Tag = "AdminHide" Then
+            If varWho = "Authorized" Then
+                ctl.Visible = True
+            Else
+                ctl.Visible = False
+            End If
+        End If
+
+    End If
+
+Next
+
+
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+'List boxes
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Public Sub ClearSelectedUnits(frm As Form)
+On Error GoTo ClearSelectedError_Handler
+
+    Dim lngRow As Long
+    Dim lst As ListBox
+    Set lst = frm!lstUnitSelect
+    
+        For lngRow = 0 To lst.ListCount - 1
+            lst.Selected(lngRow) = False
+        Next
+    
+    frm!lstModel.RowSource = "SELECT DISTINCT Model FROM UnitList"
+    
+Exit_Handler:
+    Exit Sub
+
+ClearSelectedError_Handler:
+    MsgBox ("Error attempting to select all." & Chr(10) & Chr(10) & "Error: " & Err.Number & Chr(10) & Err.Description)
+    Resume Exit_Handler
+    
+End Sub
+
+
+
+
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Use insted of domain commands (i.e.:dlookup)
+'---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Dim db As DAO.Database
+Dim rs As DAO.Recordset
+Dim intResult As Integer
+Dim strSQL As String
+
+Set db = CurrentDb
+
+strSQL = "SELECT COUNT(*) As RecordCount FROM tblProducts"
+Set rs = db.OpenRecordset(strSQL, dbOpenSnapShot)
+
+intResult = rs("RecordCount")
+
+rs.Close
+db.Close
+
+
+'-----------------------------------------------------
+Multi-Conditional formatting for Report
+
+
+
+
+Option Explicit
+Option Compare Text
+
+
+Private Const conRed    As Long = vbRed
+Private Const conGreen  As Long = 4227072    '<  Dark Green not available as a VB constant
+Private Const conWhite  As Long = vbWhite
+Private Const conBlack  As Long = vbBlack
+Private Const conYellow As Long = vbYellow
+
+
+Private Sub Detail_Format(Cancel As Integer, FormatCount As Integer)
+
+    Select Case Me.txtCategory
+        Case "A"
+            Select Case Me.rptHoursLeft
+                Case Is < 0:    SetUnderRange rptHoursLeft
+                Case Is > 25:   SetOverRange rptHoursLeft
+                Case Else:      SetNormalRange rptHoursLeft
+            End Select
+        
+        Case "B"
+            Select Case Me.rptHoursLeft
+                Case Is < 0:    SetUnderRange rptHoursLeft
+                Case Is > 95:   SetOverRange rptHoursLeft
+                Case Else:      SetNormalRange rptHoursLeft
+            End Select
+        
+        Case "C"
+            Select Case Me.rptHoursLeft
+                Case Is < 0:    SetUnderRange rptHoursLeft
+                Case Is > 5:    SetOverRange rptHoursLeft
+                Case Else:      SetNormalRange rptHoursLeft
+            End Select
+        
+        Case "D"
+            Select Case Me.rptHoursLeft
+                Case Is < 0:    SetUnderRange rptHoursLeft
+                Case Is > 5000: SetOverRange rptHoursLeft
+                Case Is > 4000: SetHighRange rptHoursLeft
+                Case Else:      SetNormalRange rptHoursLeft
+            End Select
+        
+    End Select
+
+End Sub
+
+
+Private Sub SetUnderRange(ByRef ctlThisControl As Control)
+
+    With ctlThisControl
+        .BackColor = conRed
+        .ForeColor = conBlack
+        .FontBold = True
+        .FontUnderline = False
+        .FontItalic = False
+    End With
+
+End Sub
+
+
+Private Sub SetNormalRange(ByRef ctlThisControl As Control)
+
+    With ctlThisControl
+        .BackColor = conYellow
+        .ForeColor = conGreen
+        .FontBold = True
+        .FontUnderline = True
+        .FontItalic = True
+    End With
+
+End Sub
+
+
+Private Sub SetOverRange(ByRef ctlThisControl As Control)
+
+    With ctlThisControl
+        .BackColor = conWhite
+        .ForeColor = conGreen
+        .FontBold = False
+        .FontUnderline = False
+        .FontItalic = False
+    End With
+
+End Sub
+
+
+Private Sub SetHighRange(ByRef ctlThisControl As Control)
+
+    With ctlThisControl
+        .BackColor = conGreen
+        .ForeColor = conYellow
+        .FontBold = True
+        .FontUnderline = False
+        .FontItalic = False
+    End With
+
+End Sub
