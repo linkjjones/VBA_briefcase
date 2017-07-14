@@ -1109,34 +1109,35 @@ Sub ExtractRGBColor_Font()
 'PURPOSE: Output the RGB color code for the ActiveCell's Font Color
 'SOURCE: www.TheSpreadsheetGuru.com
 
-Dim HEXcolor As String
-Dim RGBcolor As String
+    Dim HEXcolor As String
+    Dim RGBcolor As String
+    
+    HEXcolor = Right("000000" & Hex(ActiveCell.Font.Color), 6)
+    
+    RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
+    ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
+    ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
+    
+    'Debug.Print RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Font Color"
+    Debug.Print "Font Color: " & RGBcolor
 
-HEXcolor = Right("000000" & Hex(ActiveCell.Font.Color), 6)
-
-RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
-", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
-", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
-
-'Debug.Print RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Font Color"
-Debug.Print "Font Color: " & RGBcolor
 End Sub
 
 Sub ExtractRGBColor_Fill()
 'PURPOSE: Output the RGB color code for the ActiveCell's Fill Color
 'SOURCE: www.TheSpreadsheetGuru.com
 
-Dim HEXcolor As String
-Dim RGBcolor As String
-
-HEXcolor = Right("000000" & Hex(ActiveCell.Interior.Color), 6)
-
-RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
-           ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
-           ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
-
-'RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Fill Color"
-Debug.Print "Fill Color: " & RGBcolor
+    Dim HEXcolor As String
+    Dim RGBcolor As String
+    
+    HEXcolor = Right("000000" & Hex(ActiveCell.Interior.Color), 6)
+    
+    RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
+               ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
+               ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
+    
+    'RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Fill Color"
+    Debug.Print "Fill Color: " & RGBcolor
 
 End Sub
 
