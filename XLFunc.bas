@@ -41,6 +41,7 @@ Public Sub ScrollToCol(ScrollCol As Integer, Optional SmoothUP As Boolean)
     Dim startTime As Long
     On Error GoTo NormalScroll
     
+    Application.EnableEvents = False
     Sleep 1
     
     With ActiveWindow
@@ -54,13 +55,16 @@ Public Sub ScrollToCol(ScrollCol As Integer, Optional SmoothUP As Boolean)
            GoTo NormalScroll
         End If
     End With
-
+    
+    Application.EnableEvents = True
+    
 Exit Sub
 
 NormalScroll:
     If ScrollCol > 0 Then
         ActiveWindow.ScrollColumn = ScrollCol
-   End If
+    End If
+    Application.EnableEvents = True
     
 End Sub
 
@@ -69,6 +73,8 @@ Public Sub ScrollToRow(ScrollRow As Integer, Optional SmoothUP As Boolean)
     Dim StartingRow As Long
     Dim startTime As Long
     On Error GoTo NormalScroll
+    
+    Application.EnableEvents = False
     
     Sleep 1
     
@@ -83,13 +89,16 @@ Public Sub ScrollToRow(ScrollRow As Integer, Optional SmoothUP As Boolean)
            GoTo NormalScroll
         End If
     End With
-
+    
+    Application.EnableEvents = True
+    
 Exit Sub
 
 NormalScroll:
     If ScrollRow > 0 Then
         ActiveWindow.ScrollRow = ScrollRow
-   End If
+    End If
+    Application.EnableEvents = True
     
 End Sub
 
@@ -106,9 +115,9 @@ Private Function Inertia(PercentScrolled As Double) As Integer
 '    Debug.Print Inertia
 End Function
 
-Public Function HasDependents(ByVal target As Excel.Range) As Boolean
+Public Function HasDependents(ByVal Target As Excel.Range) As Boolean
     On Error Resume Next
-    HasDependents = target.Dependents.Count
+    HasDependents = Target.Dependents.Count
 End Function
 
 Public Function OpenWorkbook(FilePath As String, Visible As Boolean, _
@@ -339,15 +348,15 @@ Sub CopyUpFormulas_Sheet(Optional ws As Worksheet, Optional CommentRow As Long, 
     
 End Sub
 
-Public Sub ClearListBoxSelection(lst As msforms.ListBox)
-    Dim i As Integer
-    
-    For i = 0 To lst.ListCount - 1
-        lst.Selected(i) = False
-    Next i
-    'Go back to top of list
-    lst.Selected(0) = False
-End Sub
+'Public Sub ClearListBoxSelection(lst As msforms.ListBox)
+'    Dim i As Integer
+'
+'    For i = 0 To lst.ListCount - 1
+'        lst.Selected(i) = False
+'    Next i
+'    'Go back to top of list
+'    lst.Selected(0) = False
+'End Sub
 
 Public Function GetLastCol(ws As Worksheet, Optional RowNumber As Long, _
                            Optional ColLimit As Long) As Long
@@ -479,6 +488,7 @@ Public Sub ExitEditMode()
 End Sub
 
 Public Sub CleanWorkbook()
+    
     If Clean Then
         Call ShowAllXLControls
         Clean = False
@@ -486,6 +496,7 @@ Public Sub CleanWorkbook()
         Call HideAllXLControls
         Clean = True
     End If
+    
 End Sub
 
 Public Sub HideAllXLControls()
@@ -497,13 +508,17 @@ Public Sub HideAllXLControls()
     
     With Application
         .DisplayFormulaBar = False
-        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",False)"
+'        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",False)"
 '        .DisplayScrollBars = False
 '        .DisplayStatusBar = Not Application.DisplayStatusBar
     End With
     
+    'This is only collapses the ribbon
+    If CommandBars("Ribbon").Height > 100 Then
+        CommandBars.ExecuteMso "MinimizeRibbon"
+    End If
+    
     Application.ScreenUpdating = False
-    'Set zoom for each worksheet
     For Each ws In Worksheets
         ws.Select
         With ActiveWindow
@@ -540,9 +555,14 @@ Public Sub ShowAllXLControls()
         End With
     Next ws
     
+    'maximize ribbon
+    If CommandBars("Ribbon").Height < 100 Then
+        CommandBars.ExecuteMso "MinimizeRibbon"
+    End If
+    
     With Application
         .DisplayFormulaBar = True
-        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",True)"
+'        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",True)"
         .DisplayScrollBars = True
         .DisplayStatusBar = True
     End With
@@ -684,13 +704,13 @@ Public Function InRange(Range1 As Range, Range2 As Range) As Boolean
     InRange = Not (Application.Intersect(Range1, Range2) Is Nothing)
 End Function
 
-Public Sub SelectionFormat(ws As Worksheet, target As Range, rng As Range, _
+Public Sub SelectionFormat(ws As Worksheet, Target As Range, rng As Range, _
                      UpdateText As String, _
                      Optional ValidationColOffset As Long)
     'This routine finds the intersection of
     Dim IntersectRange As Range
 
-    Set IntersectRange = Application.Intersect(rng, target)
+    Set IntersectRange = Application.Intersect(rng, Target)
     If IntersectRange Is Nothing Then
         Exit Sub
     End If
@@ -723,13 +743,13 @@ Public Sub SelectionFormat(ws As Worksheet, target As Range, rng As Range, _
 
 End Sub
 
-Public Sub SelectorSelect(ws As Worksheet, target As Range, rng)
+Public Sub SelectorSelect(ws As Worksheet, Target As Range, rng)
     Dim IntersectRange  As Range
     Dim TargetText      As String
     Dim InteriorColor   As Long
     Dim FontColor       As Long
     
-    Set IntersectRange = Application.Intersect(rng, target)
+    Set IntersectRange = Application.Intersect(rng, Target)
     If IntersectRange Is Nothing Then
         Exit Sub
     End If
@@ -1060,5 +1080,63 @@ Public Sub QuerySheetDAO(sql As String, _
     Set DAO_db = Nothing
     Set DAO_ws = Nothing
                            
+End Sub
+
+Public Function Hover(SheetName As String, currentRow As Long, currentCol As Long)
+    Dim rngAccent   As Range
+    Dim rngDeaccent   As Range
+    
+    'This routine is activated by hovering over a cell with this formula:
+    '=IFERROR(HYPERLINK(Hover("Site Group Permission",ROW(),COLUMN()),"Upgrading"),"Upgrading")
+    
+    Set rngDeaccent = Range("SiteSelection")
+    Set rngAccent = ActiveSheet.Cells(currentRow, currentCol)
+    
+    Select Case SheetName
+        Case Is = "Site Group Permission"
+            rngDeaccent.Font.Color = RGB(172, 185, 202)
+            rngAccent.Font.Color = RGB(255, 255, 255)
+    End Select
+
+'    Debug.Print SheetName & " " & currentRow & " " & currentCol
+    
+End Function
+
+
+
+
+Sub ExtractRGBColor_Font()
+'PURPOSE: Output the RGB color code for the ActiveCell's Font Color
+'SOURCE: www.TheSpreadsheetGuru.com
+
+Dim HEXcolor As String
+Dim RGBcolor As String
+
+HEXcolor = Right("000000" & Hex(ActiveCell.Font.Color), 6)
+
+RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
+", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
+", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
+
+'Debug.Print RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Font Color"
+Debug.Print "Font Color: " & RGBcolor
+End Sub
+
+Sub ExtractRGBColor_Fill()
+'PURPOSE: Output the RGB color code for the ActiveCell's Fill Color
+'SOURCE: www.TheSpreadsheetGuru.com
+
+Dim HEXcolor As String
+Dim RGBcolor As String
+
+HEXcolor = Right("000000" & Hex(ActiveCell.Interior.Color), 6)
+
+RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
+           ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
+           ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
+
+'RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Fill Color"
+Debug.Print "Fill Color: " & RGBcolor
+
 End Sub
 
