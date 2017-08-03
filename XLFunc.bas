@@ -978,7 +978,8 @@ Public Sub HideAllColumns(ws As Worksheet, StartCol As Long, LastColumn As Long)
 End Sub
 
 Public Sub ProgressBar(Msg As String, Done As Long, Total As Long)
-    'This function puts text into the statusbar
+    On Error Resume Next
+    'USE PERCENTAGE INSTEAD OF ACTUAL PASSED NUMBERS
     Application.StatusBar = Msg & " [ " & String(Done, "|") & String(Total - Done, ".") & " ] " & Format(Done / Total, "Percent")
 End Sub
 
@@ -1141,3 +1142,29 @@ Sub ExtractRGBColor_Fill()
 
 End Sub
 
+Public Function MergedCellValue(MergedCell As Range) As Variant
+    'This function assumes the merged cells are on the same row
+    Dim CellAddress As String
+    CellAddress = MergedCell.MergeArea.Address
+    If InStr(1, CellAddress, ":") > 0 Then
+        'Get the left-most cell
+        CellAddress = Left(CellAddress, InStr(1, CellAddress, ":") - 1)
+    End If
+    MergedCellValue = Range(CellAddress)
+End Function
+
+Public Function GetFirstOccurance(Value As Variant, Column As Long, _
+                                  SearchRange As Range) As Long
+    On Error Resume Next
+    'This function returns the row number
+    GetFirstOccurance = SearchRange.Find(Value, SearchRange(SearchRange.Count), , , , xlNext).Row
+
+End Function
+
+Public Function GetLastOccurance(Value As Variant, Column As Long, _
+                                 Optional SearchRange As Range) As Long
+    'This function returns the row number
+    GetLastOccurance = SearchRange.Find(Value, SearchRange(1), , , , _
+                                        xlPrevious).Row
+
+End Function
