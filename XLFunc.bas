@@ -417,25 +417,29 @@ End Function
 '
 'End Function
 
-Public Function HeaderCol(ws As Worksheet, HeaderName As String, Optional HeadingRow As Long) _
-                          As Long
+Public Function HeaderCol(ws As Worksheet, HeaderName As String, Optional HeadingRow As Long, _
+                          Optional LastOccurance As Boolean) As Long
     On Error Resume Next
     Dim Header As Range
-
+    
     Dim LookRange As Range, cell As Range
     Dim LastDataColumn As Long
     
     HeadingRow = IIf(HeadingRow = 0, HeaderRow, HeadingRow)
     
-    LastDataColumn = GetLastCol(ws, HeadingRow)
-    
+'    LastDataColumn = GetLastCol(ws, HeadingRow)
+    LastDataColumn = ws.UsedRange.Columns.Count
     With ws
         'since the above code is flaky...lets just loop through
         Set LookRange = .Range(.Cells(HeadingRow, 1), .Cells(HeadingRow, LastDataColumn))
         For Each cell In LookRange
             If cell.Value = HeaderName Then
-                HeaderCol = cell.Column
-                Exit For
+                If Not LastOccurance Then
+                    HeaderCol = cell.Column
+                    Exit For
+                Else
+                    HeaderCol = cell.Column
+                End If
             End If
         Next cell
         
@@ -489,12 +493,15 @@ End Sub
 
 Public Sub CleanWorkbook()
     
-    If Clean Then
-        Call ShowAllXLControls
-        Clean = False
-    Else
-        Call HideAllXLControls
-        Clean = True
+    If MsgBox("Changing the view will affect all excel instances.", _
+              vbOKCancel) = vbOK Then
+        If Clean Then
+            Call ShowAllXLControls
+            Clean = False
+        Else
+            Call HideAllXLControls
+            Clean = True
+        End If
     End If
     
 End Sub
@@ -1167,4 +1174,31 @@ Public Function GetLastOccurance(Value As Variant, Column As Long, _
     GetLastOccurance = SearchRange.Find(Value, SearchRange(1), , , , _
                                         xlPrevious).Row
 
+End Function
+
+Public Function VisibleRowsCount(LookInRange As Range) As Long
+    'Let user know if all rows have been filtered out
+    Dim VisibleRowCount As Long
+    Dim rangeRow    As Range
+    
+    On Error Resume Next
+    VisibleRowsCount = LookInRange.Rows.SpecialCells(xlCellTypeVisible).Rows.Count
+    If VisibleRowsCount = 0 Then
+        If Err.Number = 1004 Then
+            VisibleRowsCount = 0
+        Else
+            'loop through (if the range created causes
+            '              greater than 8192 non-contiguous areas then
+            '              Excel will throw an error)
+            
+            For Each rangeRow In LookInRange.Rows
+                If Not rangeRow.Hidden = True Then
+                    VisibleRowCount = VisibleRowCount + 1
+                End If
+            Next rangeRow
+            
+            VisibleRowsCount = VisibleRowCount
+        End If
+    End If
+    
 End Function
