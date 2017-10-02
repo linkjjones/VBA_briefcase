@@ -984,11 +984,29 @@ Public Sub HideAllColumns(ws As Worksheet, StartCol As Long, LastColumn As Long)
     Next i
 End Sub
 
-Public Sub ProgressBar(Msg As String, Done As Long, Total As Long)
-    On Error Resume Next
-    'USE PERCENTAGE INSTEAD OF ACTUAL PASSED NUMBERS
-    Application.StatusBar = Msg & " [ " & String(Done, "|") & String(Total - Done, ".") & " ] " & Format(Done / Total, "Percent")
+Public Sub ProgressBar(Msg As String, Optional Done As Long, Optional Total As Long)
+    Dim percentDone As Double
+    
+'    On Error Resume Next
+    If Msg <> "" Then
+        If Done <> 0 And Total <> 0 Then
+            percentDone = Round(Done / Total * 100)
+            Msg = Msg & " [ " & String(percentDone, "|") & String(100 - percentDone, ".") & " ] " & Format(Done / Total, "Percent")
+        End If
+        If Msg <> Application.StatusBar Then
+            Application.StatusBar = Msg
+        End If
+    Else
+        Application.StatusBar = False
+    End If
+    
 End Sub
+
+'Public Sub ProgressBar(Msg As String, Done As Long, Total As Long)
+'    On Error Resume Next
+'    'USE PERCENTAGE INSTEAD OF ACTUAL PASSED NUMBERS
+'    Application.StatusBar = Msg & " [ " & String(Done, "|") & String(Total - Done, ".") & " ] " '& Format(Done / Total, "Percent")
+'End Sub
 
 Public Function LatestVersion() As Boolean
     If Not Range("LatestVersion") > Range("AboutVersion") Then
