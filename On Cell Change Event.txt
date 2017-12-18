@@ -1,0 +1,4 @@
+Private Sub Worksheet_Change(ByVal Target As Range) 
+  If Not Intersect(Target, Target.Worksheets("Symbols").Range("$C$3")) Is Nothing Then
+   'Run Code
+End Sub

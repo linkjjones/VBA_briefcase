@@ -1,0 +1,2 @@
+Application.AskToUpdateLinks = False
+Application.DisplayAlerts = False
