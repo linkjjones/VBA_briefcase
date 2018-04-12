@@ -1,0 +1,22 @@
+
+'//Get data from sharepoint list
+
+Dim objCon As New ADODB.Connection
+objCon.Open "Provider=Microsoft.ACE.OLEDB.12.0;WSS;IMEX=2;RetrieveIds=Yes;DATABASE=mysite/documents;LIST={xxxx-guid-xxxx};"
+
+Dim rst As Recordset
+Set rst = objCon.Execute("Select * from list1")
+Range("A1").CopyFromRecordset rst
+rst.Close
+
+
+
+
+Notes:
+
+to be adapted
+DATABASE=mysite/documents 
+LIST={xxxx-guid-xxxx};"
+for the listname you can export the list to excel and then in notepad read the Sharepoint List Name in the iqy File
+for example
+SharePointListName={6369870F-27E0-4945-979C-8E513BABAF5A}
