@@ -6,21 +6,49 @@ Option Explicit
 Public Const HeaderRow As Long = 10
 Public Const DataStartRow As Long = HeaderRow + 1
 Public Const Orange = 46
-Public Const g_FontSize = 9
 Public pwd As String
 Public Clean As Boolean
 Public GlobalCounter As Long
 Public Const SkipString As String = "~$"
 Public Const NL As String = vbNewLine 'new line
 Public Const DL As String = NL & NL   'skip a line
-Public Enum DataType
-    textdata = 0
-    IDdata = 1
-    DecimalData = 2
-    Percentdata = 3
+
+Public Enum PathType
+    Directory = 0
+    file = 1
 End Enum
 
-Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Public Enum ErrCode
+    none = 0
+    queryError = 1
+    fileNotFound = 2
+    wrongFileType = 3
+End Enum
+
+'Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+
+Public Sub gErrHandler(Optional Code As ErrCode = none, Optional errValue As Variant)
+    Dim Msg     As String
+    Dim title   As String
+    
+    Select Case Code
+        Case Is = none
+        Case Is = queryError
+            Msg = "Please contact database administrator to check query." & vbNewLine & vbNewLine & _
+              "'" & errValue & "'"
+            title = "Query error"
+        Case Is = fileNotFound
+            Msg = "This file does not exist: " & vbNewLine & vbNewLine & _
+              errValue
+            title = "File not found"
+        Case Else
+            Msg = "Excel cannot access the dataxlfunc." & Chr(10) & _
+              "You may need to request LAN access to the database back-end."
+            title = "Read/Write Access required."
+    End Select
+
+    MsgBox Msg, vbInformation, title
+End Sub
 
 Public Sub SetPassword()
     pwd = ""
@@ -30,6 +58,14 @@ Public Sub InsertDateNow(DateCell As Range)
     DateCell.Value = Date
 End Sub
 
+Public Sub UnfilterSheet(Optional ws As Worksheet)
+    If ws Is Nothing Then
+        Set ws = ActiveSheet
+    End If
+    
+    If ws.FilterMode Then ws.ShowAllData
+End Sub
+
 'Public Sub ScrollToCol(ScrollCol As Integer)
 '    ActiveWindow.ScrollColumn = ScrollCol
 'End Sub
@@ -37,10 +73,9 @@ End Sub
 Public Sub ScrollToCol(ScrollCol As Integer, Optional SmoothUP As Boolean)
     Dim i As Integer
     Dim StartingCol As Long
-    Dim startTime As Long
+    Dim StartTime As Long
     On Error GoTo NormalScroll
     
-    Application.EnableEvents = False
     Sleep 1
     
     With ActiveWindow
@@ -54,26 +89,21 @@ Public Sub ScrollToCol(ScrollCol As Integer, Optional SmoothUP As Boolean)
            GoTo NormalScroll
         End If
     End With
-    
-    Application.EnableEvents = True
-    
+
 Exit Sub
 
 NormalScroll:
     If ScrollCol > 0 Then
         ActiveWindow.ScrollColumn = ScrollCol
-    End If
-    Application.EnableEvents = True
+   End If
     
 End Sub
 
 Public Sub ScrollToRow(ScrollRow As Integer, Optional SmoothUP As Boolean)
     Dim i As Integer
     Dim StartingRow As Long
-    Dim startTime As Long
+    Dim StartTime As Long
     On Error GoTo NormalScroll
-    
-    Application.EnableEvents = False
     
     Sleep 1
     
@@ -88,16 +118,13 @@ Public Sub ScrollToRow(ScrollRow As Integer, Optional SmoothUP As Boolean)
            GoTo NormalScroll
         End If
     End With
-    
-    Application.EnableEvents = True
-    
+
 Exit Sub
 
 NormalScroll:
     If ScrollRow > 0 Then
         ActiveWindow.ScrollRow = ScrollRow
-    End If
-    Application.EnableEvents = True
+   End If
     
 End Sub
 
@@ -176,14 +203,6 @@ Public Sub CloseWorkbook(XLBook As Excel.Workbook, Optional SaveWB As Boolean)
     
 End Sub
 
-Public Function LastRow(ws As Worksheet, ColumnNumber As Long) As Long
-    LastRow = ws.Cells(ws.Rows.Count, ColumnNumber).End(xlUp).Row
-End Function
-
-Public Function LastCol(ws As Worksheet, RowNumber As Long) As Long
-    LastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
-End Function
-
 Public Function HeaderCell(HeaderName As String, ws As Worksheet, LastDataColumn As Long) As Range
     On Error Resume Next
     Dim Header As Range
@@ -204,11 +223,8 @@ Public Function HeaderCell(HeaderName As String, ws As Worksheet, LastDataColumn
 
 End Function
 
-Public Function WorksheetExists(SheetName As String, Optional wb As Workbook) As Boolean
+Public Function WorksheetExists(wb As Workbook, SheetName As String) As Boolean
     Dim ws As Worksheet
-    If wb Is Nothing Then
-        Set wb = ActiveWorkbook
-    End If
     
     For Each ws In wb.Sheets
         If UCase(ws.Name) = UCase(SheetName) Then
@@ -217,17 +233,6 @@ Public Function WorksheetExists(SheetName As String, Optional wb As Workbook) As
         End If
     Next
 
-End Function
-
-Public Function FoundInRange(Value As Variant, _
-                                  SearchRange As Range) As Boolean
-    Dim RowNum As Long
-    
-    On Error Resume Next
-    'This function returns the row number
-    RowNum = SearchRange.Find(Value, SearchRange(SearchRange.Count), , , , xlNext).Row
-    FoundInRange = IIf(RowNum > 0, True, False)
-    
 End Function
 
 Public Function FindRowInColumn(XLSheet As Worksheet, FindCol As Long, _
@@ -265,20 +270,40 @@ Public Function FindColInRow(XLSheet As Worksheet, FindRow As Long, _
     
 End Function
 
-Public Function GetFirstOccurance(Value As Variant, _
-                                  SearchRange As Range) As Long
+Public Function GetFirstOccurance(Value As Variant, SearchRange As Range) As Long
     On Error Resume Next
     'This function returns the row number
-    GetFirstOccurance = SearchRange.Find(Value, SearchRange(SearchRange.Count), , , , xlNext).Row
-
+    GetFirstOccurance = SearchRange.Find(Value, SearchRange(SearchRange.Count), , , , xlNext).row
 End Function
 
-Public Function GetLastOccurance(Value As Variant, _
-                                 Optional SearchRange As Range) As Long
+Public Function GetLastOccuranceRow(Value As Variant, SearchRange As Range) As Long
     'This function returns the row number
-    GetLastOccurance = SearchRange.Find(Value, SearchRange(1), , , , _
-                                        xlPrevious).Row
+    if not SearchRange(1) = "" then
+    	GetLastOccuranceRow = SearchRange.Find(Value, SearchRange(1), , , , _
+                                        xlPrevious).row
+    End If
+End Function
 
+Public Function FindInRange(ws As Worksheet, _
+                            RangeToLookIn As Range, FindString As String) As String
+    Dim rng As Range
+    
+    With RangeToLookIn
+        Set rng = .Find(What:=FindString, _
+                        After:=.Cells(.Cells.Count), _
+                        LookIn:=xlValues, _
+                        lookat:=xlWhole, _
+                        SearchOrder:=xlByRows, _
+                        SearchDirection:=xlNext, _
+                        MatchCase:=False)
+        If Not rng Is Nothing Then
+            FindInRange = rng.Address 'return address
+        Else
+            FindInRange = ""
+        End If
+        
+    End With
+    
 End Function
 
 Public Sub CopyDownFormulas(ws As Worksheet, PasteRange As Range, FormulaCommentCell As Range, PasteAsValues As Boolean)
@@ -351,7 +376,7 @@ Sub CopyUpFormulas_Sheet(Optional ws As Worksheet, Optional CommentRow As Long, 
     End If
     
     If CommentRow = 0 Then
-        CommentRow = DataStartRow - 1
+        CommentRow = HeaderRow
     End If
     
     If StartColumn = 0 Then
@@ -374,23 +399,33 @@ Sub CopyUpFormulas_Sheet(Optional ws As Worksheet, Optional CommentRow As Long, 
     
 End Sub
 
-'Public Sub ClearListBoxSelection(lst As msforms.ListBox)
-'    Dim i As Integer
+Public Sub ClearListBoxSelection(lst As msforms.ListBox)
+    Dim i As Integer
+    
+    For i = 0 To lst.ListCount - 1
+        lst.Selected(i) = False
+    Next i
+    'Go back to top of list
+    lst.Selected(0) = False
+End Sub
+
+'Public Function lastRow(ws As Worksheet, ColumnNumber As Long) As Long
+'    lastRow = ws.Cells(ws.Rows.Count, ColumnNumber).End(xlUp).Row
+'End Function
 '
-'    For i = 0 To lst.ListCount - 1
-'        lst.Selected(i) = False
-'    Next i
-'    'Go back to top of list
-'    lst.Selected(0) = False
-'End Sub
+'Public Function LastCol(ws As Worksheet, RowNumber As Long) As Long
+'    LastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
+'End Function
 
 Public Function GetLastCol(ws As Worksheet, Optional RowNumber As Long, _
                            Optional ColLimit As Long) As Long
+                           
     RowNumber = IIf(RowNumber = 0, HeaderRow, RowNumber)
 
     GetLastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
-    
+
     GetLastCol = IIf(GetLastCol < ColLimit, ColLimit, GetLastCol)
+    
 End Function
 
 Public Function GetFirstCol(ws As Worksheet, Optional RowNumber As Long, _
@@ -403,26 +438,11 @@ Public Function GetFirstCol(ws As Worksheet, Optional RowNumber As Long, _
     GetFirstCol = ws.Cells(RowNumber, StartCol).End(xlToRight).Column
 End Function
 
-'Public Function GetFirstRow(ws As Worksheet, ColumnNumber As Long, _
-'                           Optional StartRow As Long, _
-'                           Optional BtmLimitRow As Long) As Long
-'    'Using XLDown is funky as it goes from where it is (a blank/not blank cell)
-     'to the next DIFFERENT cell
-'    StartRow = IIf(StartRow = 0, HeaderRow, StartRow)
-'
-'    GetFirstRow = ws.Cells(StartRow, ColumnNumber).End(xlDown).Row
-'
-'    If BtmLimitRow > 0 Then
-'        GetFirstRow = IIf(GetFirstRow > BtmLimitRow, BtmLimitRow, GetFirstRow)
-'    End If
-'
-'End Function
-
 Public Function GetLastRow(ws As Worksheet, ColumnNumber As Long, _
                            StartRow As Long, _
                            Optional ToColumn As Long, _
                            Optional Contiguous As Boolean) As Long
-    Dim LastRow     As Long
+    Dim lastRow     As Long
     Dim i As Long, j As Long
     Dim ColLastRow  As Long
     
@@ -455,16 +475,32 @@ Public Function GetLastRow(ws As Worksheet, ColumnNumber As Long, _
             
         'loop through columns and get the greatest last row
         For i = ColumnNumber To ToColumn
-            ColLastRow = ws.Cells(ws.Rows.Count, i).End(xlUp).Row
-            LastRow = IIf(ColLastRow > LastRow, ColLastRow, LastRow)
+            ColLastRow = ws.Cells(ws.rows.Count, i).End(xlUp).row
+            lastRow = IIf(ColLastRow > lastRow, ColLastRow, lastRow)
         Next i
         
-        GetLastRow = IIf(LastRow < StartRow, StartRow, LastRow)
+        GetLastRow = IIf(lastRow < StartRow, StartRow, lastRow)
     End If
     
 End Function
 
-Public Function HeaderCol(ws As Worksheet, HeaderName As String, Optional HeadingRow As Long, _
+'Public Function GetFirstRow(ws As Worksheet, ColumnNumber As Long, _
+'                           Optional StartRow As Long, _
+'                           Optional BtmLimitRow As Long) As Long
+'    'Using XLDown is funky as it goes from where it is (a blank/not blank cell)
+     'to the next DIFFERENT cell
+'    StartRow = IIf(StartRow = 0, HeaderRow, StartRow)
+'
+'    GetFirstRow = ws.Cells(StartRow, ColumnNumber).End(xlDown).Row
+'
+'    If BtmLimitRow > 0 Then
+'        GetFirstRow = IIf(GetFirstRow > BtmLimitRow, BtmLimitRow, GetFirstRow)
+'    End If
+'
+'End Function
+
+Public Function HeaderCol(ws As Worksheet, HeaderName As String, _
+                          Optional HeadingRow As Long, _
                           Optional LastOccurance As Boolean) As Long
     On Error Resume Next
     Dim Header As Range
@@ -472,8 +508,8 @@ Public Function HeaderCol(ws As Worksheet, HeaderName As String, Optional Headin
     Dim LookRange As Range, cell As Range
     Dim LastDataColumn As Long
     
-    HeadingRow = IIf(HeadingRow = 0, HeaderRow, HeadingRow)
-    
+    If HeadingRow = 0 Then HeadingRow = HeaderRow
+
 '    LastDataColumn = GetLastCol(ws, HeadingRow)
     LastDataColumn = ws.UsedRange.Columns.Count
     With ws
@@ -539,40 +575,31 @@ Public Sub ExitEditMode()
 End Sub
 
 Public Sub CleanWorkbook()
-    
-    If MsgBox("Changing the view will affect all excel instances.", _
-              vbOKCancel) = vbOK Then
-        If Clean Then
-            Call ShowAllXLControls
-            Clean = False
-        Else
-            Call HideAllXLControls
-            Clean = True
-        End If
+    If Clean Then
+        Call ShowAllXLControls
+        Clean = False
+    Else
+        Call HideAllXLControls
+        Clean = True
     End If
-    
 End Sub
 
 Public Sub HideAllXLControls()
     Dim ws As Worksheet
-    Dim CurrentSheet As Worksheet
+    Dim currentSheet As Worksheet
     
     'Get the current ws so we can go back to it after all the changes
-    Set CurrentSheet = ActiveSheet
+    Set currentSheet = ActiveSheet
     
     With Application
         .DisplayFormulaBar = False
-'        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",False)"
+        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",False)"
 '        .DisplayScrollBars = False
 '        .DisplayStatusBar = Not Application.DisplayStatusBar
     End With
     
-    'This is only collapses the ribbon
-    If CommandBars("Ribbon").Height > 100 Then
-        CommandBars.ExecuteMso "MinimizeRibbon"
-    End If
-    
     Application.ScreenUpdating = False
+    'Set zoom for each worksheet
     For Each ws In Worksheets
         ws.Select
         With ActiveWindow
@@ -584,7 +611,7 @@ Public Sub HideAllXLControls()
     Next ws
     
     'Go back to the starting worksheet
-    CurrentSheet.Select
+    currentSheet.Select
     
     Application.ScreenUpdating = True
    
@@ -592,10 +619,10 @@ End Sub
 
 Public Sub ShowAllXLControls()
     Dim ws As Worksheet
-    Dim CurrentSheet As Worksheet
+    Dim currentSheet As Worksheet
     
     'Get the current ws so we can go back to it after all the changes
-    Set CurrentSheet = ActiveSheet
+    Set currentSheet = ActiveSheet
     
     Application.ScreenUpdating = False
     
@@ -609,20 +636,15 @@ Public Sub ShowAllXLControls()
         End With
     Next ws
     
-    'maximize ribbon
-    If CommandBars("Ribbon").Height < 100 Then
-        CommandBars.ExecuteMso "MinimizeRibbon"
-    End If
-    
     With Application
         .DisplayFormulaBar = True
-'        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",True)"
+        .ExecuteExcel4Macro "SHOW.TOOLBAR(""Ribbon"",True)"
         .DisplayScrollBars = True
         .DisplayStatusBar = True
     End With
     
     'Go back to the starting worksheet
-    CurrentSheet.Select
+    currentSheet.Select
     
     Application.ScreenUpdating = True
     
@@ -646,7 +668,7 @@ Public Sub AddCheckBoxesToRange(ws As Worksheet, CheckRange As Range, _
     For Each c In CheckRange.Cells
         'rotate an image
         If ImageToRotate <> "" Then
-            RotateImage ws, ImageToRotate, Increment, c.Row
+            RotateImage ws, ImageToRotate, Increment, c.row
         End If
         
         ws.CheckBoxes.add(c.Left, c.Top, c.Width, c.Height).Select
@@ -705,11 +727,12 @@ Public Sub RotateImage(ws As Worksheet, imgName As String, _
     
 End Sub
 
-Public Sub ValidateRange(RangeToBeValidated As Range, ValueListFormula As Variant, Optional DropDown As Boolean)
+Public Sub ValidateRange(RangeToBeValidated As Range, ValueListFormula As Variant, _
+                         Optional DropDown As Boolean, Optional IgnoreBlank As Boolean = True)
     With RangeToBeValidated.Validation
         .Delete
         .add xlValidateList, xlValidAlertStop, , ValueListFormula
-        .IgnoreBlank = True
+        .IgnoreBlank = IgnoreBlank
         .InCellDropdown = DropDown
     End With
 End Sub
@@ -728,21 +751,21 @@ Public Sub ClearLines(rng As Range)
     rng.Borders.ColorIndex = xlNone
 End Sub
 
-Public Sub FormatRangeWithLines(FormatRange As Range, Optional VerticalLines As Boolean)
+Public Sub FormatRangeWithLines(formatRange As Range, Optional VerticalLines As Boolean)
     
-    With FormatRange
+    With formatRange
         If VerticalLines Then
-            .Borders(xlInsideHorizontal).Color = RGB(200, 200, 200)
+            .Borders(xlInsideHorizontal).Color = RGB(0, 0, 0)
             .Borders(xlInsideHorizontal).LineStyle = xlContinuous
             .Borders(xlInsideHorizontal).Weight = xlThin
-            .Borders(xlInsideVertical).Color = RGB(200, 200, 200)
+            .Borders(xlInsideVertical).Color = RGB(0, 0, 0)
             .Borders(xlInsideVertical).LineStyle = xlContinuous
             .Borders(xlInsideVertical).Weight = xlThin
             .Borders(xlEdgeLeft).LineStyle = xlContinuous
             .Borders(xlEdgeRight).LineStyle = xlContinuous
             .Borders(xlEdgeBottom).LineStyle = xlContinuous
             .Borders(xlEdgeTop).LineStyle = xlContinuous
-            .Borders(xlEdgeBottom).Color = RGB(100, 100, 100)
+            .Borders(xlEdgeBottom).Color = RGB(0, 0, 0)
         Else
             .Borders(xlInsideHorizontal).Color = RGB(200, 200, 200)
             .Borders(xlInsideHorizontal).LineStyle = xlContinuous
@@ -760,70 +783,58 @@ End Function
 
 Public Sub SelectionFormat(ws As Worksheet, Target As Range, rng As Range, _
                      UpdateText As String, _
-                     Optional ValidationColOffset As Long)
-    'This routine finds the intersection and formats
+                     Optional ValidationColOffset As Long, _
+                     Optional SelectedFillColor As Variant, _
+                     Optional SelectedTextColor As Variant)
+    'This routine finds the intersection of
     Dim IntersectRange As Range
-    
-    Application.EnableEvents = False
-    
+
     Set IntersectRange = Application.Intersect(rng, Target)
     If IntersectRange Is Nothing Then
         Exit Sub
     End If
     
     With IntersectRange
-        If ValidationColOffset = 0 Or _
-           IntersectRange.Cells(1).Offset(, ValidationColOffset).Value <> "" Then
-            .Value = UpdateText
-            If .Cells(1).Value = "Trash" Or _
-                .Cells(1).Value = "Delete" Or _
-                .Cells(1).Value = "X" Then
-                .Interior.Color = vbBlack
-                .Font.Color = RGB(255, 0, 0)
-'                    .Borders.Color = RGB(255, 0, 0)
-            ElseIf .Cells(1).Value = "Update" Or _
-                .Cells(1).Value = ChrW(&H2713) Then
-                .Interior.ColorIndex = Orange
-                .Font.Color = RGB(255, 255, 255)
-'   2                 .Borders.ColorIndex = xlNone
-            ElseIf .Cells(1).Value = "Restore" Then
-                .Interior.Color = RGB(0, 153, 0)
-                .Font.Color = vbWhite
-'                    .Borders.ColorIndex = xlNone
-            Else
-                .Value = ""
-                .Interior.ColorIndex = 0
-                .Borders.ColorIndex = xlNone
+        If IntersectRange.Cells(1).Value = "" Then
+            If ValidationColOffset = 0 Or _
+               IntersectRange.Cells(1).Offset(, ValidationColOffset).Value <> "" Then
+                .Value = UpdateText
+                Select Case ws.Name
+                    Case Is = "Log"
+                        If .Cells(1).Value = "Trash" Or .Cells(1).Value = "Delete" Then
+                            .Interior.Color = vbBlack
+                            .Font.Color = RGB(255, 0, 0)
+        '                    .Borders.Color = RGB(255, 0, 0)
+                        ElseIf .Cells(1).Value = "Update" Then
+                            .Interior.ColorIndex = Orange
+                            .Font.Color = RGB(255, 255, 255)
+        '                    .Borders.ColorIndex = xlNone
+                        ElseIf .Cells(1).Value = "Restore" Then
+                            .Interior.Color = RGB(0, 153, 0)
+                            .Font.Color = vbWhite
+        '                    .Borders.ColorIndex = xlNone
+                        End If
+                    Case Is = "Summary-Welder"
+                        If Not IsEmpty(SelectedFillColor) Then
+                            .Interior.ColorIndex = Orange
+                            .Interior.ColorIndex = SelectedFillColor
+                        End If
+                        If Not IsEmpty(SelectedTextColor) Then
+                            .Font.Color = SelectedTextColor
+'                            .Font.Color = RGB(255, 255, 255)
+                        End If
+                    Case Else
+                        .Interior.ColorIndex = Orange
+                        .Font.Color = vbWhite
+                End Select
             End If
+        Else
+            .Value = ""
+            .Interior.ColorIndex = 0
+'            .Borders.ColorIndex = xlNone
         End If
-        .HorizontalAlignment = xlCenter
-        .VerticalAlignment = xlCenter
     End With
-    
-    Application.EnableEvents = True
-    
-End Sub
 
-Public Function SelectionCycle(CurrentValue As String) As String
-    
-    If CurrentValue = "" Then
-        SelectionCycle = ChrW(&H2713)
-    ElseIf CurrentValue = ChrW(&H2713) Then
-        SelectionCycle = "X"
-    ElseIf CurrentValue = "X" Then
-        SelectionCycle = ""
-    End If
-    
-End Function
-
-Public Sub SelectAllColumnsInRecord(SyncRows As Range, ColumnOffset As Long)
-    
-    'update: get the ColumnsOffset from the number of columns from sync/header row
-    
-    Application.EnableEvents = False
-    SyncRows.Resize(SyncRows.Rows.Count, ColumnOffset).Select
-    Application.EnableEvents = True
-    
 End Sub
 
 Public Sub SelectorSelect(ws As Worksheet, Target As Range, rng)
@@ -888,54 +899,46 @@ Function StringContainsNumber(strData As String) As Boolean
      
 End Function
 
-Sub FormatRange(rng As Range, TypeOfData As DataType, Optional RightJustified As Boolean)
 
-    With rng
-        Select Case TypeOfData
-            Case Is = textdata
-                'Text
-                .NumberFormat = "@"
-                If RightJustified Then
-                    .HorizontalAlignment = xlRight
-                Else
-                    .HorizontalAlignment = xlLeft
-                End If
-                .VerticalAlignment = xlCenter
-                .Font.Size = g_FontSize
-                .IndentLevel = 1
-            Case Is = IDdata
-                'ID
-                .Font.Color = RGB(200, 200, 200)
-                .HorizontalAlignment = xlCenter
-                .Font.Size = 8
-                .VerticalAlignment = xlCenter
-            Case Is = DecimalData
-                'Decimal
-                .NumberFormat = "0.000"
-                .HorizontalAlignment = xlRight
-                .IndentLevel = 1
-                .VerticalAlignment = xlCenter
-                .Font.Size = g_FontSize
-            Case Is = Percentdata
-                'Percent
-                .NumberFormat = "0%"
-                .HorizontalAlignment = xlCenter
-                .VerticalAlignment = xlCenter
-                .Font.Size = g_FontSize
-        End Select
+Sub FormatDecimal(rng As Range)
+With rng
+        .NumberFormat = "0.000"
+        .HorizontalAlignment = xlRight
+        .IndentLevel = 1
     End With
-    
 End Sub
 
-Public Function GetRecordFilesInFolder(HostFolderPath As String, _
+Sub FormatPercent(rng As Range)
+With rng
+        .NumberFormat = "0%"
+        .HorizontalAlignment = xlCenter
+    End With
+End Sub
+
+Sub FormatText(rng As Range)
+With rng
+        .NumberFormat = "@"
+        .HorizontalAlignment = xlLeft
+    End With
+End Sub
+
+Sub FormatID(rng As Range)
+    With rng
+        .Font.Color = RGB(200, 200, 200)
+        .HorizontalAlignment = xlCenter
+        .Font.Size = 8
+    End With
+End Sub
+
+Public Function GetAllFilesInFolder(HostFolderPath As String, _
                                     Optional ValidatorString As String, _
                                     Optional SkipFileString As String) As Collection
-    Dim FSO, oFolder, oSubfolder, oFile, queue As Collection
+    Dim fso, oFolder, oSubfolder, oFile, queue As Collection
     Dim FileCollection As New Collection
     
-    Set FSO = CreateObject("Scripting.FileSystemObject")
+    Set fso = CreateObject("Scripting.FileSystemObject")
     Set queue = New Collection
-    queue.add FSO.GetFolder(HostFolderPath)
+    queue.add fso.GetFolder(HostFolderPath)
 
     Do While queue.Count > 0
         Set oFolder = queue(1)
@@ -959,7 +962,7 @@ Public Function GetRecordFilesInFolder(HostFolderPath As String, _
         
     Loop
     
-    Set GetRecordFilesInFolder = FileCollection
+    Set GetAllFilesInFolder = FileCollection
     
 End Function
 
@@ -1059,11 +1062,11 @@ Private Function merge(c1 As Collection, c2 As Collection, _
 
 End Function
 
-Public Sub HideAllColumns(ws As Worksheet, StartCol As Long, LastColumn As Long)
+Public Sub HideAllColumns(ws As Worksheet, StartCol As Long, Lastcolumn As Long)
     Dim i As Long
     
     'Hide Columns
-    For i = StartCol To LastColumn
+    For i = StartCol To Lastcolumn
         ws.Columns(i).EntireColumn.Hidden = True
     Next i
 End Sub
@@ -1086,180 +1089,14 @@ Public Sub ProgressBar(Msg As String, Optional Done As Long, Optional Total As L
     
 End Sub
 
-'Public Sub ProgressBar(Msg As String, Done As Long, Total As Long)
-'    On Error Resume Next
-'    'USE PERCENTAGE INSTEAD OF ACTUAL PASSED NUMBERS
-'    Application.StatusBar = Msg & " [ " & String(Done, "|") & String(Total - Done, ".") & " ] " '& Format(Done / Total, "Percent")
-'End Sub
-
 Public Function LatestVersion() As Boolean
     If Not Range("LatestVersion") > Range("AboutVersion") Then
         LatestVersion = True
+    Else
+        MsgBox "This is not the latest version. Please close and use the newest version." & Chr(10) & Chr(10) & _
+               "If you have any uncomitted changes, you may save this workbook, using 'Save As' to refer to your changes later.", _
+               vbInformation, "Welder Percent Log has been updated."
     End If
-End Function
-
-Public Function ColNumber(ColLetter As String) As Long
-    If ColLetter <> "" Then
-        ColNumberFromLetter = ActiveSheet.Range(ColLetter & 1).Column
-    End If
-End Function
-
-Public Function ColLetter(ColNumber As Long) As String
-    If ColNumber > 0 Then
-        ColLetter = Split(Cells(, ColNumber).Address, "$")(1)
-    End If
-End Function
-
-Public Function RangeIsEmpty(rng As Range) As Boolean
-    If WorksheetFunction.CountA(rng) = 0 Then
-        RangeIsEmpty = True
-    End If
-End Function
-
-Public Sub FreezePanes(ws As Worksheet, _
-                       Optional SplitRow As Long, _
-                       Optional SplitColumn As Long)
-    Dim CurrentSheet As Worksheet
-    
-    If SplitRow = 0 Then
-        SplitRow = DataStartRow
-    End If
-    
-     '// store current sheet
-    Set CurrentSheet = ActiveSheet
-     
-     '// Stop flickering...
-    Application.ScreenUpdating = False
-              
-     '// Have to activate - SplitColumn and SplitRow are properties
-     '// of ActiveSheet
-    ws.Activate
-     
-    With ActiveWindow
-        'reset: may not be necessary
-        .FreezePanes = False
-        .SplitColumn = SplitColumn
-        .SplitRow = SplitRow
-        .FreezePanes = True
-    End With
-     
-     '// Back to original sheet
-    CurrentSheet.Activate
-    Application.ScreenUpdating = True
-     
-    Set ws = Nothing
-    Set CurrentSheet = Nothing
-     
-End Sub
-
-Public Sub QuerySheetDAO(sql As String, _
-                         PasteCellRange As Range, _
-                         Optional SourceFullPathName As String)
-    ' This function requires reference to the
-    ' Microsoft DAO 3.5 Object Library
-    ' QueryExample:
-    ' "SELECT * FROM [Sheet2$] WHERE Dept='cc';"
-    ' "Select * from [NamedRange];"
-    
-    Const stExtens As String = "Excel 8.0;HDR=Yes;"
-     
-     'Variables for DAO.
-    Dim DAO_ws As DAO.Workspace
-    Dim DAO_db As DAO.Database
-    Dim DAO_rs As DAO.Recordset
-     
-    If SourceFullPathName = "" Then
-        SourceFullPathName = ActiveWorkbook.FullName
-    End If
-    
-     'Instantiate the DAO objects.
-    Set DAO_ws = DBEngine.Workspaces(0)
-    Set DAO_db = DAO_ws.OpenDatabase(SourceFullPathName, False, True, stExtens)
-    Set DAO_rs = DAO_db.OpenRecordset(sql, dbOpenForwardOnly)
-     
-     'Write the Recordset to the target range.
-    PasteCellRange.CopyFromRecordset DAO_rs
-     
-     'Close.
-    DAO_rs.Close
-    DAO_db.Close
-    DAO_ws.Close
-     
-     'Release objects from memory.
-    Set DAO_rs = Nothing
-    Set DAO_db = Nothing
-    Set DAO_ws = Nothing
-                           
-End Sub
-
-Public Function Hover(SheetName As String, currentRow As Long, currentCol As Long)
-    Dim rngAccent   As Range
-    Dim rngDeaccent   As Range
-    
-    'This routine is activated by hovering over a cell with this formula:
-    '=IFERROR(HYPERLINK(Hover("Site Group Permission",ROW(),COLUMN()),"Upgrading"),"Upgrading")
-    
-    Set rngDeaccent = Range("SiteSelection")
-    Set rngAccent = ActiveSheet.Cells(currentRow, currentCol)
-    
-    Select Case SheetName
-        Case Is = "Site Group Permission"
-            rngDeaccent.Font.Color = RGB(172, 185, 202)
-            rngAccent.Font.Color = RGB(255, 255, 255)
-    End Select
-
-'    Debug.Print SheetName & " " & currentRow & " " & currentCol
-    
-End Function
-
-
-
-
-Sub ExtractRGBColor_Font()
-'PURPOSE: Output the RGB color code for the ActiveCell's Font Color
-'SOURCE: www.TheSpreadsheetGuru.com
-
-    Dim HEXcolor As String
-    Dim RGBcolor As String
-    
-    HEXcolor = Right("000000" & Hex(ActiveCell.Font.Color), 6)
-    
-    RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
-    ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
-    ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
-    
-    'Debug.Print RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Font Color"
-    Debug.Print "Font Color: " & RGBcolor
-
-End Sub
-
-Sub ExtractRGBColor_Fill()
-'PURPOSE: Output the RGB color code for the ActiveCell's Fill Color
-'SOURCE: www.TheSpreadsheetGuru.com
-
-    Dim HEXcolor As String
-    Dim RGBcolor As String
-    
-    HEXcolor = Right("000000" & Hex(ActiveCell.Interior.Color), 6)
-    
-    RGBcolor = "RGB(" & CInt("&H" & Right(HEXcolor, 2)) & _
-               ", " & CInt("&H" & Mid(HEXcolor, 3, 2)) & _
-               ", " & CInt("&H" & Left(HEXcolor, 2)) & ")"
-    
-    'RGBcolor, vbInformation, "Cell " & ActiveCell.Address(False, False) & ":  Fill Color"
-    Debug.Print "Fill Color: " & RGBcolor
-
-End Sub
-
-Public Function MergedCellValue(MergedCell As Range) As Variant
-    'This function assumes the merged cells are on the same row
-    Dim CellAddress As String
-    CellAddress = MergedCell.MergeArea.Address
-    If InStr(1, CellAddress, ":") > 0 Then
-        'Get the left-most cell
-        CellAddress = Left(CellAddress, InStr(1, CellAddress, ":") - 1)
-    End If
-    MergedCellValue = Range(CellAddress)
 End Function
 
 Public Function VisibleRowsCount(LookInRange As Range) As Long
@@ -1268,7 +1105,7 @@ Public Function VisibleRowsCount(LookInRange As Range) As Long
     Dim rangeRow    As Range
     
     On Error Resume Next
-    VisibleRowsCount = LookInRange.Rows.SpecialCells(xlCellTypeVisible).Rows.Count
+    VisibleRowsCount = LookInRange.rows.SpecialCells(xlCellTypeVisible).rows.Count
     If VisibleRowsCount = 0 Then
         If Err.Number = 1004 Then
             VisibleRowsCount = 0
@@ -1277,7 +1114,7 @@ Public Function VisibleRowsCount(LookInRange As Range) As Long
             '              greater than 8192 non-contiguous areas then
             '              Excel will throw an error)
             
-            For Each rangeRow In LookInRange.Rows
+            For Each rangeRow In LookInRange.rows
                 If Not rangeRow.Hidden = True Then
                     VisibleRowCount = VisibleRowCount + 1
                 End If
@@ -1289,22 +1126,173 @@ Public Function VisibleRowsCount(LookInRange As Range) As Long
     
 End Function
 
-Public Function ArrayDimensions(ByVal vArray As Variant) As Long
-    Dim ErrorCheck As Variant
-    Dim dimnum As Long
-    On Error GoTo FinalDimension
+Sub FormatDateColumns(ws As Worksheet, FormatString As String, _
+                      Optional HeadingRow As Long)
+    'This routine loops through and formate all columns that have "*date*"
+    'in the header
+    Dim Lastcolumn  As Long
+    Dim i           As Long
     
-    For dimnum = 1 To 1000
-        ErrorCheck = LBound(vArray, dimnum)
-    Next
+    HeadingRow = IIf(HeadingRow = 0, HeaderRow, HeadingRow)
+    Lastcolumn = XLFunc.GetLastCol(ws, HeadingRow)
     
-FinalDimension:
-    ArrayDimensions = dimnum - 1
+    With ws
+    
+        For i = 1 To Lastcolumn
+            If InStr(1, .Cells(HeadingRow, i), "Date") > 0 Then
+                ws.Columns(i).NumberFormat = FormatString
+            End If
+        Next i
+    
+    End With
+    
+End Sub
+
+Public Function IsArrayEmpty(Arr As Variant) As Boolean
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+' IsArrayEmpty
+' This function tests whether the array is empty (unallocated). Returns TRUE or FALSE.
+'
+' The VBA IsArray function indicates whether a variable is an array, but it does not
+' distinguish between allocated and unallocated arrays. It will return TRUE for both
+' allocated and unallocated arrays. This function tests whether the array has actually
+' been allocated.
+'
+' This function is really the reverse of IsArrayAllocated.
+'thank's Chip: http://www.cpearson.com/excel/vbaarrays.htm
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+Dim LB As Long
+    Dim UB As Long
+    
+    Err.Clear
+    On Error Resume Next
+    If IsArray(Arr) = False Then
+        ' we weren't passed an array, return True
+        IsArrayEmpty = True
+    End If
+    
+    ' Attempt to get the UBound of the array. If the array is
+    ' unallocated, an error will occur.
+    UB = UBound(Arr, 1)
+    If (Err.Number <> 0) Then
+        IsArrayEmpty = True
+    Else
+        ''''''''''''''''''''''''''''''''''''''''''
+        ' On rare occassion, under circumstances I
+        ' cannot reliably replictate, Err.Number
+        ' will be 0 for an unallocated, empty array.
+        ' On these occassions, LBound is 0 and
+        ' UBoung is -1.
+        ' To accomodate the weird behavior, test to
+        ' see if LB > UB. If so, the array is not
+        ' allocated.
+        ''''''''''''''''''''''''''''''''''''''''''
+        Err.Clear
+        LB = LBound(Arr)
+        If LB > UB Then
+            IsArrayEmpty = True
+        Else
+            IsArrayEmpty = False
+        End If
+    End If
 
 End Function
 
-Private Function GetFileExtension(ByVal path As String)
-    With New Scripting.FileSystemObject
-        GetFileExtension = .GetExtensionName(path)
+Public Function fileExists(file As String, fType As PathType) As Boolean
+    If Not file = "" Then
+        If fType = Directory Then
+            fileExists = Dir(file, vbDirectory) <> ""
+        Else
+            fileExists = Dir(file) <> ""
+        End If
+    End If
+End Function
+
+Public Function GetPath(DialogTitle As String, namedRange As String, _
+                      pType As PathType, _
+                      Optional fileTypeDesc As String, _
+                      Optional fileType As String)
+    Dim fd As FileDialog
+    Dim sPath As String
+    Dim ws As Worksheet
+    Set ws = Sheets("Control")
+    If pType = file Then
+        Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    Else
+        Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+    End If
+    
+    With fd
+        .title = DialogTitle
+        If Not fileType = "" Then
+            .Filters.Clear
+            .Filters.add fileTypeDesc, fileType, 1
+        End If
+        .InitialFileName = Application.ActiveWorkbook.Path
+        
+        If fd.Show = -1 Then
+            sPath = .SelectedItems(1)
+        End If
     End With
+    
+    ws.Range(namedRange) = sPath
+End Function
+
+Public Function TransposeArray(myarray As Variant) As Variant
+'from https://bettersolutions.com/vba/arrays/transposing.htm
+    Dim X As Long
+    Dim Y As Long
+    Dim Xupper As Long
+    Dim Yupper As Long
+    Dim tempArray As Variant
+    Xupper = UBound(myarray, 2)
+    Yupper = UBound(myarray, 1)
+    ReDim tempArray(Xupper, Yupper)
+    For X = 0 To Xupper
+        For Y = 0 To Yupper
+            tempArray(X, Y) = myarray(Y, X)
+        Next Y
+    Next X
+    TransposeArray = tempArray
+End Function
+
+Public Sub PlaceArray(data As Variant, ws As Worksheet, _
+               firstDataCell As Range)
+    Dim rows As Long
+    Dim cols As Long
+    Dim wasProtected As Boolean
+    
+    wasProtected = ws.ProtectContents
+    
+    If Not IsEmpty(data) Then
+        rows = UBound(data, 1) + 1
+        cols = UBound(data, 2) + 1
+        ws.Unprotect
+        firstDataCell.Resize(rows, cols) = data
+        If wasProtected Then ws.Protect
+    End If
+End Sub
+
+Public Function GetFile(Optional DialogTitle As String, _
+                        Optional FileDescription As String, _
+                        Optional FileExtension As String) As String
+    Dim fd As FileDialog
+    Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    
+    With fd
+        If Not DialogTitle = "" Then
+            .title = DialogTitle
+        End If
+        .Filters.Clear
+        If Not FileExtension = "" Then
+            .Filters.add FileDescription, FileExtension, 1
+        End If
+        .InitialFileName = Application.ActiveWorkbook.Path
+        
+        If fd.Show = -1 Then
+            GetFile = .SelectedItems(1)
+        End If
+    End With
+
 End Function
