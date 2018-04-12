@@ -1,0 +1,21 @@
+Dim lst as ListBox
+Dim varItem as variant
+'Clearing selections a listbox
+
+Set lst = myListBox	
+
+If lst.MultiSelect.count = 0 Then
+    lst = Null
+Else
+    For Each varItem In lst.ItemsSelected
+        'do some stuff
+	'deselect the item
+	lst.Selected(varItem) = False
+    Next
+End If
+
+
+'-------------
+'Get the data from a selected row of multicolumn listbox
+
+lst.Column(ColNum, lst.ListIndex)
