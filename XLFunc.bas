@@ -189,7 +189,7 @@ End Function
 
 Public Sub CloseWorkbook(XLBook As Excel.Workbook, Optional SaveWB As Boolean)
     Dim XLApp As Excel.Application
-    
+    On Error Resume Next
     Set XLApp = XLBook.Application
     If Not XLBook Is Nothing Then
         If SaveWB Then
