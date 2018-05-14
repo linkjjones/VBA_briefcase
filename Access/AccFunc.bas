@@ -1,4 +1,4 @@
-Attribute VB_Name = "AccFunctions"
+Attribute VB_Name = "AccFunc"
 Option Compare Database
 Option Explicit
 
@@ -67,56 +67,6 @@ Public Sub ClearAllControls(frm As Form, Optional Tag As String)
     
 End Sub
 
-Public Function IsArrayEmpty(Arr As Variant) As Boolean
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-' IsArrayEmpty
-' This function tests whether the array is empty (unallocated). Returns TRUE or FALSE.
-'
-' The VBA IsArray function indicates whether a variable is an array, but it does not
-' distinguish between allocated and unallocated arrays. It will return TRUE for both
-' allocated and unallocated arrays. This function tests whether the array has actually
-' been allocated.
-'
-' This function is really the reverse of IsArrayAllocated.
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-    Dim LB As Long
-    Dim UB As Long
-
-    Err.Clear
-    On Error Resume Next
-    If IsArray(Arr) = False Then
-        ' we weren't passed an array, return True
-        IsArrayEmpty = True
-    End If
-
-    ' Attempt to get the UBound of the array. If the array is
-    ' unallocated, an error will occur.
-    UB = UBound(Arr, 1)
-    If (Err.Number <> 0) Then
-        IsArrayEmpty = True
-    Else
-        ''''''''''''''''''''''''''''''''''''''''''
-        ' On rare occasion, under circumstances I
-        ' cannot reliably replicate, Err.Number
-        ' will be 0 for an unallocated, empty array.
-        ' On these occasions, LBound is 0 and
-        ' UBound is -1.
-        ' To accommodate the weird behavior, test to
-        ' see if LB > UB. If so, the array is not
-        ' allocated.
-        ''''''''''''''''''''''''''''''''''''''''''
-        Err.Clear
-        LB = LBound(Arr)
-        If LB > UB Then
-            IsArrayEmpty = True
-        Else
-            IsArrayEmpty = False
-        End If
-    End If
-
-End Function
-
 Public Function SimpleListBoxItemSelected(ctlListBox As ListBox, _
                                           ReturnCol As Integer) As Long
     'check if a list item is selected
@@ -125,25 +75,6 @@ Public Function SimpleListBoxItemSelected(ctlListBox As ListBox, _
     End If
     
 End Function
-
-Public Sub SayThis(Sentence As String)
-    Dim s As Object
-    Dim vol As Long
-    
-    Set s = CreateObject("SAPI.SpVoice")
-    
-    'Get current volume
-    vol = s.volume
-    'set higher volume
-    s.volume = 100
-    'Say it
-    s.Speak Sentence
-    'Set volume to original level
-    s.volume = vol
-    'Cleanup
-    Set s = Nothing
-    
-End Sub
 
 ' This code was originally written by Dev Ashish.
 ' It is not to be altered or distributed,
@@ -166,7 +97,8 @@ End Sub
 '        DoCmd.CancelEvent
 'End Sub
 
-Function WordAllowsAccessVBA(wd As Word.Document) as boolean
+Function WordAllowsAccessVBA(wd As Object) As Boolean
+'Function WordAllowsAccessVBA(wd As Word.Document) As Boolean
     On Error Resume Next
     If Len(wd.VBProject.Name) Then
     End If
@@ -177,3 +109,12 @@ Function WordAllowsAccessVBA(wd As Word.Document) as boolean
         WordAllowsAccessVBA = True
     End If
 End Function
+
+Public Sub StatusBar(ShowText As String)
+    Dim varReturn As Variant
+    If ShowText = "" Then
+        ShowText = " "
+    End If
+    varReturn = SysCmd(acSysCmdSetStatus, ShowText)
+End Sub
+
