@@ -1,6 +1,11 @@
 Attribute VB_Name = "Func"
 Option Explicit
 
+Public Enum PathType
+    Directory = 0
+    file = 1
+End Enum
+
 Public Function IsArrayEmpty(Arr As Variant) As Boolean
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ' IsArrayEmpty
