@@ -145,36 +145,6 @@ Public Function fileExists(file As String, fType As PathType) As Boolean
     End If
 End Function
 
-Public Function GetPath(DialogTitle As String, namedRange As String, _
-                      pType As PathType, _
-                      Optional fileTypeDesc As String, _
-                      Optional fileType As String)
-    Dim fd As FileDialog
-    Dim sPath As String
-    Dim ws As Worksheet
-    Set ws = Sheets("Control")
-    If pType = file Then
-        Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    Else
-        Set fd = Application.FileDialog(msoFileDialogFolderPicker)
-    End If
-    
-    With fd
-        .title = DialogTitle
-        If Not fileType = "" Then
-            .Filters.Clear
-            .Filters.Add fileTypeDesc, fileType, 1
-        End If
-        .InitialFileName = Application.ActiveWorkbook.Path
-        
-        If fd.Show = -1 Then
-            sPath = .SelectedItems(1)
-        End If
-    End With
-    
-    ws.Range(namedRange) = sPath
-End Function
-
 Public Function mergeSort(c As Collection, Optional uniq = True) As Collection
 
     Dim i As Long, xMax As Long, tmp1 As Collection, tmp2 As Collection, xOdd As Boolean
