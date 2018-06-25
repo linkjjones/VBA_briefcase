@@ -423,8 +423,10 @@ Public Function GetLastCol(ws As Worksheet, Optional RowNumber As Long, _
     RowNumber = IIf(RowNumber = 0, HeaderRow, RowNumber)
 
     GetLastCol = ws.Cells(RowNumber, ws.Columns.Count).End(xlToLeft).Column
-
-    GetLastCol = IIf(GetLastCol < ColLimit, ColLimit, GetLastCol)
+    
+    If Not ColLimit = 0 Then
+        GetLastCol = IIf(GetLastCol > ColLimit, ColLimit, GetLastCol)
+    End If
     
 End Function
 
