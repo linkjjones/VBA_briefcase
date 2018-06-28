@@ -512,8 +512,7 @@ Public Function HeaderCol(ws As Worksheet, HeaderName As String, _
     
     If HeadingRow = 0 Then HeadingRow = HeaderRow
 
-'    LastDataColumn = GetLastCol(ws, HeadingRow)
-    LastDataColumn = ws.UsedRange.Columns.Count
+    LastDataColumn = GetLastCol(ws, HeadingRow)
     With ws
         'since the above code is flaky...lets just loop through
         Set LookRange = .Range(.Cells(HeadingRow, 1), .Cells(HeadingRow, LastDataColumn))
