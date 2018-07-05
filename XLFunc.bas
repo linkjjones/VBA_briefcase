@@ -1297,3 +1297,10 @@ Public Function GetFile(Optional DialogTitle As String, _
     End With
 
 End Function
+
+Public Function ColLetter(ColNum As Long)
+    ColLetter = Split(Cells(1, ColNum).Address, "$")(1)
+End Function
+Public Function ColNumber(ColNm As String)
+    ColNumber = Range(ColNm & 1).Column
+End Function
