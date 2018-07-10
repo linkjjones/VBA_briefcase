@@ -1,1 +1,5 @@
 p_EndSeq = Nz(CurrentProject.Connection.Execute(sql).Collect(0), 0)
+
+CurrentDb.Execute sql, dbFailOnError
+
+rs.Open sql, CurrentProject.Connection, 1, 3
