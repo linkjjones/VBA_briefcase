@@ -1,0 +1,1 @@
+p_EndSeq = Nz(CurrentProject.Connection.Execute(sql).Collect(0), 0)
