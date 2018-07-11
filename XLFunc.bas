@@ -1210,36 +1210,6 @@ Public Function fileExists(file As String, fType As PathType) As Boolean
     End If
 End Function
 
-Public Function GetPath(DialogTitle As String, namedRange As String, _
-                      pType As PathType, _
-                      Optional fileTypeDesc As String, _
-                      Optional fileType As String)
-    Dim fd As FileDialog
-    Dim sPath As String
-    Dim ws As Worksheet
-    Set ws = Sheets("Control")
-    If pType = file Then
-        Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    Else
-        Set fd = Application.FileDialog(msoFileDialogFolderPicker)
-    End If
-    
-    With fd
-        .title = DialogTitle
-        If Not fileType = "" Then
-            .Filters.Clear
-            .Filters.add fileTypeDesc, fileType, 1
-        End If
-        .InitialFileName = Application.ActiveWorkbook.Path
-        
-        If fd.Show = -1 Then
-            sPath = .SelectedItems(1)
-        End If
-    End With
-    
-    ws.Range(namedRange) = sPath
-End Function
-
 Public Function TransposeArray(myarray As Variant) As Variant
 'from https://bettersolutions.com/vba/arrays/transposing.htm
     Dim X As Long
@@ -1275,7 +1245,7 @@ Public Sub PlaceArray(data As Variant, ws As Worksheet, _
     End If
 End Sub
 
-Public Function GetFile(Optional DialogTitle As String, _
+Public Function GetFilePath(Optional DialogTitle As String, _
                         Optional FileDescription As String, _
                         Optional FileExtension As String) As String
     Dim fd As FileDialog
@@ -1292,7 +1262,7 @@ Public Function GetFile(Optional DialogTitle As String, _
         .InitialFileName = Application.ActiveWorkbook.Path
         
         If fd.Show = -1 Then
-            GetFile = .SelectedItems(1)
+            GetFilePath = .SelectedItems(1)
         End If
     End With
 
