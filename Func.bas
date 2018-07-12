@@ -205,3 +205,36 @@ Private Function merge(c1 As Collection, c2 As Collection, _
     Set merge = tmp
 
 End Function
+
+Public Function AlphaOnly(InputStr As Variant) As String
+
+    Dim intLoop As Integer
+    Dim strChar As String
+    
+    For intLoop = 1 To Len(InputStr)
+        strChar = Mid(InputStr, intLoop, 1)
+        If (strChar Like "[A-Z]") Then
+            AlphaOnly = AlphaOnly & strChar
+        End If
+    Next
+    
+End Function
+
+Public Function HasAlpha(InputStr As Variant) As Boolean
+
+    Dim intLoop As Integer
+    Dim strChar As String
+    Dim tInputStr As String
+    
+    tInputStr = Trim(CStr(InputStr))
+    
+    For intLoop = 1 To Len(tInputStr)
+        strChar = Mid(tInputStr, intLoop, 1)
+        If (strChar Like "[A-Z]") Then
+            HasAlpha = True
+            Exit Function
+        End If
+    Next
+    
+End Function
+                                        
