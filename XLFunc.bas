@@ -356,7 +356,7 @@ Public Sub CopyDownFormulas_Sheet(LastDataRow As Long, _
             End If
         Next i
     End With
-
+'reset protect
 End Sub
 
 Sub TestCopyUpFormulas()
