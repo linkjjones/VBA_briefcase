@@ -1245,22 +1245,27 @@ Public Sub PlaceArray(data As Variant, ws As Worksheet, _
     End If
 End Sub
 
-Public Function GetFilePath(Optional DialogTitle As String, _
-                        Optional FileDescription As String, _
-                        Optional FileExtension As String) As String
+Public Function GetFilePath(DialogTitle As String, _
+                      pType As PathType, _
+                      Optional fileTypeDesc As String, _
+                      Optional fileType As String)
+                      End Function
     Dim fd As FileDialog
-    Set fd = Application.FileDialog(msoFileDialogFilePicker)
-    
+
+    If pType = file Then
+        Set fd = Application.FileDialog(msoFileDialogFilePicker)
+    Else
+        Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+    End If
+
     With fd
-        If Not DialogTitle = "" Then
-            .title = DialogTitle
-        End If
-        .Filters.Clear
-        If Not FileExtension = "" Then
-            .Filters.add FileDescription, FileExtension, 1
+        .title = DialogTitle
+        If Not fileType = "" Then
+            .Filters.Clear
+            .Filters.Add fileTypeDesc, fileType, 1
         End If
         .InitialFileName = Application.ActiveWorkbook.Path
-        
+
         If fd.Show = -1 Then
             GetFilePath = .SelectedItems(1)
         End If
