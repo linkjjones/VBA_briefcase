@@ -1247,8 +1247,8 @@ End Sub
 
 Public Function GetFilePath(DialogTitle As String, _
                       pType As PathType, _
-                      Optional fileTypeDesc As String, _
-                      Optional fileType As String)
+                      Optional fileExtensionDesc As String, _
+                      Optional fileExtension As String)
                       End Function
     Dim fd As FileDialog
 
@@ -1260,9 +1260,9 @@ Public Function GetFilePath(DialogTitle As String, _
 
     With fd
         .title = DialogTitle
-        If Not fileType = "" Then
+        If Not fileExtension = "" Then
             .Filters.Clear
-            .Filters.Add fileTypeDesc, fileType, 1
+            .Filters.Add fileExtensionDesc, fileExtension, 1
         End If
         .InitialFileName = Application.ActiveWorkbook.Path
 
